@@ -1,5 +1,4 @@
 module DLWGMMIV
-
 # Write your package code here.
 using Distributions
 using Random
@@ -13,9 +12,20 @@ using Ipopt
 using ForwardDiff
 using Zygote
 
+using StatsModels
+using StatsBase
+using ShiftedArrays
+using ReadStat
+using StatFiles
+using Combinatorics
+
+using Optim
+using GLM
+#using LinearSolve
 
 include("simdata.jl")
+include("gmmiv.jl")
 
-export sim_data_CD, sim_data_solved_L
+export dlwGMMIV
 
 end
