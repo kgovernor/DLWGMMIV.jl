@@ -3,7 +3,7 @@ include("config.jl")
 function GMM_DLW2(betas, PHI, PHI_LAG, X, X_lag, Z; all=false)
     OMEGA = PHI - X*betas
     OMEGA_lag = PHI_LAG - X_lag*betas
-    OMEGA_lag_pol = [ones(length(OMEGA_lag)) OMEGA_lag OMEGA_lag.^2 OMEGA_lag.^3]
+    OMEGA_lag_pol = [ones(length(OMEGA_lag)) OMEGA_lag]# OMEGA_lag.^2 OMEGA_lag.^3]
     OMEGA_lag_polsq = OMEGA_lag_pol'OMEGA_lag_pol
     
     g_b = qr(OMEGA_lag_polsq) \ OMEGA_lag_pol'OMEGA
