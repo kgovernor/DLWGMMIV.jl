@@ -20,7 +20,7 @@ using StatFiles
 using Combinatorics
 
 using Optim
-using GLM
+#using GLM
 #using LinearSolve
 
 include("simdata.jl")

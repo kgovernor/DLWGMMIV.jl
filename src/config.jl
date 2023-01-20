@@ -1,12 +1,12 @@
 function poly_approx_vars(input1, input2, inputs...)
-    M, N = 3, 3 # degree of polynomial
-    
-    inputs = [[input1, input2]; collect(inputs)]
-    X_str = ["x"*string(i) for i in eachindex(inputs)]
+    M, N = 3, 3 # degree of polynomial    
+    inputs = [[input1, input2]; collect(inputs)] # Production function inputs
+    X_str = ["x"*string(i) for i in eachindex(inputs)] # labels for inputs
     X = Dict(zip(X_str,inputs))
-    X_cmb = combinations(X_str, 2)
+    X_cmb = combinations(X_str, 2) # creates set of interactions between inputs.
 
     components = Dict()
+    # Create polynomial terms needed for configuring data for GMMIV
     for i in 1:M
         for x in X_str
             components[x*string(i)] = X[x] .^ (i)
@@ -29,11 +29,13 @@ function poly_approx_vars(input1, input2, inputs...)
     return components
 end
 
+# This function configures the data for GMMIV method. Input 1 is treated as the dynamic input. 
 function DataConfig(year, plantid, Q, input1, input2, inputs...)
     q, inputs = log.(Q), [log.(inp) for inp in [[input1, input2]; collect(inputs)]]
     components = poly_approx_vars(inputs...)
     df = DataFrame( ; year = year, plantid=plantid, q = q, components...)
 
+    # TO DO - Let phi be derived from polynomial regression of degree 3.
     df[!, :phi] = q  
     df[!, :epsilon] = df.q .- df.phi
 
