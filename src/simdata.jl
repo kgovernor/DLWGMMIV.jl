@@ -11,7 +11,7 @@ include("checksimdata.jl")
 TBW
 
 """
-function sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["k", "l"], prod_params = [0.1, 0.25], cost_params = [-1, 0.15], omega_params = [0, 0.8, 0, 0], σ_ω = 1, seed = -1, X_start = 1000, prodF = "CD", costF = "ce")
+function sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["k", "l"], prod_params = [0.1, 0.25], cost_params = [0, 0.15], omega_params = [0, 0.8, 0, 0], σ_ω = 1, seed = -1, X_start = 1000, prodF = "CD", costF = "ce")
     println("\n\nSim Data for $(num_inputs) inputs, $(prodF)\n\n")
     if seed >= 0
         Random.seed!(seed)
