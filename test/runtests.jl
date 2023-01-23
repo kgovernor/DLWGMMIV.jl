@@ -4,36 +4,100 @@ using Test
 
 @testset "DLWGMMIV.jl" begin
     # Write your tests here.
+
+    ### Testing Sim data ###
+    println("\n\n-----TESTING SIM DATA FUNCTIONS-----\n")
     N,T = 10, 10
 
-    println("Performance of sim_data_CD:")
-    @time res1 = DLWGMMIV.sim_data_CD(N,T)
-
     println("\nPerformance of sim_data_solved_L:")
-    @time res2 = DLWGMMIV.sim_data_solved_L(N,T)
+    @time res_SL = DLWGMMIV.sim_data_solved_L_CD(N,T)
 
-    println("\n")
-    for res in [["Ipopt",res1], ["Solved L",res2]]
-        println("\n\nResults for $(res[1]) data: without ForwardDiff...")
-        derivative_checks = DLWGMMIV.sim_data_validity_check_KL(res[2].df, res[2].params)
+    println("Performance of sim_data:")
+    res = []
+    @time res = [res; DLWGMMIV.sim_data(N,T)]
+    @time res = [res; DLWGMMIV.sim_data(N,T, prod_params = [0.1, 0.25, 0.05], prodF ="tl")]
+    @time res = [res; DLWGMMIV.sim_data(N,T, num_inputs = 3, input_names = ["k", "l", "m"], prod_params = [0.1, 0.25, 0.2])]
+    @time res = [res; DLWGMMIV.sim_data(N,T, num_inputs = 3, input_names = ["k", "l", "m"], prod_params = [0.1, 0.25, 0.2, 0.05], prodF ="tl")]
+
+    println("\n==========================================")
+    ########################################################
+
+    ### Testing Solved_L simmed data ###
+    println("\n\n-----TESTING SOLVED_L SIMMED DATA-----\n")
+    println("\n\nResults for solved_L data: without ForwardDiff...")
+    derivative_checks = DLWGMMIV.sim_data_validity_check_solved_L_CD(res_SL.df, res_SL.params)
+    @test all(derivative_checks.foc_pass)
+    @test all(derivative_checks.soc_pass)
+
+    println("\nResults for solved_L data: with ForwardDiff...")
+    derivative_checks = DLWGMMIV.sim_data_validity_check_solved_L_CD(res_SL.df, res_SL.params, use_FDiff = true)
+    @test all(derivative_checks.foc_pass)
+    @test all(derivative_checks.soc_pass)
+    println("\n==========================================")
+    ###############################################################
+
+    ### Testing simmed data ###
+    println("\n\n-----TESTING SIMMED DATA-----\n")
+    for r in res
+        println("### Simmed Data for $(r.input_params.num_inputs) inputs, $(r.params.prodF) ###")
+        if (r.input_params.num_inputs == 2) && (r.params.prodF == "CD")
+            println("\n\nResults for data: without ForwardDiff...")
+            derivative_checks = DLWGMMIV.sim_data_validity_check(r.df, r.params, r.funcs, r.input_params)
+            @test all(derivative_checks.foc_pass)
+            @test all(derivative_checks.soc_pass)
+        end
+
+        println("\nResults for data: with ForwardDiff...")
+        derivative_checks = DLWGMMIV.sim_data_validity_check(r.df, r.params, r.funcs, r.input_params, use_FDiff = true)
         @test all(derivative_checks.foc_pass)
         @test all(derivative_checks.soc_pass)
+        println("\n\n")
+    end
+    println("\n==========================================")
+    ###############################################################
 
-        println("\nResults for $(res[1]) data: with ForwardDiff...")
-        derivative_checks = DLWGMMIV.sim_data_validity_check_KL(res[2].df, res[2].params, use_FDiff = true)
-        @test all(derivative_checks.foc_pass)
-        @test all(derivative_checks.soc_pass)
+    ### Testing dlwGMMIV function ###
+    println("\n\n-----TESTING DLWGMMIV FUNCTION-----\n")
+    opt_str = ["NelderMead", "LBFGS"]
+    prodF_str = ["CobbDouglas", "TransLog"]
+    description = [[opt, prodF] for prodF in prodF_str for opt in opt_str]
+
+    # For solved L data
+    println("Results for solved_L data:")
+    df_SL = res_SL.df
+    testdata_SL = [df_SL.time, df_SL.firm, df_SL.Y, 1, df_SL.K, df_SL.L]
+    @time results = [dlwGMMIV(testdata_SL...)]
+    @time results = [results; dlwGMMIV(testdata_SL..., opt = "LBFGS")]
+    @time results = [results; dlwGMMIV(testdata_SL..., prodF ="tl")]
+    @time results = [results; dlwGMMIV(testdata_SL..., opt = "LBFGS", prodF = "tl")]
+
+    for i in eachindex(results)
+        res_iv = results[i]
+        desc = description[i]
+
+        println("  For $(desc[1]) Optimization, solve $(desc[2]): ")
+        println("  convergence = $(res_iv.conv_msg) |\n  valstart, valend = $(res_iv.valstart), $(res_iv.valend) |\n  betas = $(res_iv.beta_dlw) |\n  g_b = $(res_iv.other_results.g_b) \n\n")
     end
 
-    df = res2.df
-    testdata = [df.time, df.firm, df.Y, df.K, df.L]
-    @time results = [dlwGMMIV(testdata...)]
-    @time results = [results; dlwGMMIV(testdata..., opt = "LBFGS")]
-    @time results = [results; dlwGMMIV(testdata..., prodF ="tl")]
-    @time results = [results; dlwGMMIV(testdata..., opt = "LBFGS", prodF = "tl")]
+    # For simmed data
+    for r in res
+        println("Results for Simmed Data $(r.input_params.num_inputs) inputs, $(r.params.prodF)\n")
+        df = r.df
+        testdata = [df.time, df.firm, df.Y, r.input_params.num_indp_inputs, [df[:,input] for input in r.input_params.input_names]...]
+        @time results = [dlwGMMIV(testdata...)]
+        @time results = [results; dlwGMMIV(testdata..., opt = "LBFGS")]
+        @time results = [results; dlwGMMIV(testdata..., prodF ="tl")]
+        @time results = [results; dlwGMMIV(testdata..., opt = "LBFGS", prodF = "tl")]
 
-    for res in results
-        println("convergence = $(res.conv_msg) |\n  valstart, valend = $(res.valstart), $(res.valend) |\n  betas = $(res.beta_dlw) |\n  g_b = $(res.other_results.g_b)")
+        for i in eachindex(results)
+            res_iv = results[i]
+            desc = description[i]
+
+            println("  For $(desc[1]) Optimization, solve $(desc[2]): ")
+            println("  convergence = $(res_iv.conv_msg) |\n  valstart, valend = $(res_iv.valstart), $(res_iv.valend) |\n  betas = $(res_iv.beta_dlw) |\n  g_b = $(res_iv.other_results.g_b) \n\n")
+        end
     end
+        println("\n==========================================")
+    ##############################################################
 
 end
