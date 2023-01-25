@@ -5,13 +5,13 @@ include("simdataCD_KL.jl")
 include("checksimdata.jl")
 
 """
-    sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["k", "l"], prod_params = [0.1, 0.25], cost_params = [0, 0.15], omega_params = [0, 0.8, 0, 0], σ_ω = 1, indp_inputs_lnmean = [5], indp_inputs_lnvariance = [1], seed = -1, X_start = 1000, prodF = "CD", costF = "ce")
+    sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["K", "L"], prod_params = [0.1, 0.25], cost_params = [0, 0.15], omega_params = [0, 0.8, 0, 0], σ_ω = 1, indp_inputs_lnmean = [5], indp_inputs_lnvariance = [1], seed = -1, X_start = 1000, prodF = "CD", costF = "ce")
 
 
 TBW
 
 """
-function sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["k", "l"], prod_params = [0.1, 0.25], cost_params = [0, 0.15], omega_params = [0, 0.8, 0, 0], σ_ω = 1, indp_inputs_lnmean = [5], indp_inputs_lnvariance = [1], seed = -1, X_start = 1000, prodF = "CD", costF = "ce")
+function sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["K", "L"], prod_params = [0.1, 0.25], cost_params = [0, 0.15], omega_params = [0, 0.8, 0, 0], σ_ω = 1, indp_inputs_lnmean = [5], indp_inputs_lnvariance = [1], seed = -1, X_start = 1000, prodF = "CD", costF = "ce")
     println("\n\nSim Data for $(num_inputs) inputs, $(prodF)")
     if seed >= 0
         Random.seed!(seed)
@@ -126,7 +126,7 @@ end
 function gen_input_names(num_inputs, input_names)
     if length(input_names) < num_inputs
         for j in (length(input_names)+1):num_inputs
-            input_names = [input_names; "x"*string(j)]
+            input_names = [input_names; "X"*string(j)]
         end
     else
         input_names = input_names[begin:num_inputs]
