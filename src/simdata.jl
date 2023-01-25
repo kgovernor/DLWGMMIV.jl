@@ -5,13 +5,13 @@ include("simdataCD_KL.jl")
 include("checksimdata.jl")
 
 """
-    sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["k", "l"], prod_params = [0.1, 0.25], cost_params = [0, 0.15], omega_params = [0, 0.8, 0, 0], σ_ω = 1, seed = -1, start_X = 1000, prodF = "CD", costF = "ce")
+    sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["k", "l"], prod_params = [0.1, 0.25], cost_params = [0, 0.15], omega_params = [0, 0.8, 0, 0], σ_ω = 1, indp_inputs_lnmean = [5], indp_inputs_lnvariance = [1], seed = -1, X_start = 1000, prodF = "CD", costF = "ce")
 
 
 TBW
 
 """
-function sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["k", "l"], prod_params = [0.1, 0.25], cost_params = [0, 0.15], omega_params = [0, 0.8, 0, 0], σ_ω = 1, seed = -1, X_start = 1000, prodF = "CD", costF = "ce")
+function sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["k", "l"], prod_params = [0.1, 0.25], cost_params = [0, 0.15], omega_params = [0, 0.8, 0, 0], σ_ω = 1, indp_inputs_lnmean = [5], indp_inputs_lnvariance = [1], seed = -1, X_start = 1000, prodF = "CD", costF = "ce")
     println("\n\nSim Data for $(num_inputs) inputs, $(prodF)")
     if seed >= 0
         Random.seed!(seed)
@@ -53,15 +53,19 @@ function sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["k"
 
     #######################################
         
-    # Initialize ω_it and TFP shock distribution
+    # Initialize independent variables, ω_it, and TFP shock distribution
     TFP_shock_dist = Normal(0, σ_ω)
     ω_it = rand(TFP_shock_dist, N)
     ξ = zeros(N)
     TFP_shock = ξ
 
+    indp_inputs_lnmean = length(indp_inputs_lnmean) < num_indp_inputs ? [indp_inputs_lnmean; 5*ones(num_indp_inputs - length(indp_inputs_lnmean))] : indp_inputs_lnmean[begin:num_indp_inputs]
+    indp_inputs_lnvariance = length(indp_inputs_lnvariance) < num_indp_inputs ? [indp_inputs_lnvariance; 5*ones(num_indp_inputs - length(indp_inputs_lnvariance))] : indp_inputs_lnvariance[begin:num_indp_inputs]
+    indp_inputs_distributions = [Normal(indp_inputs_lnmean[i], indp_inputs_lnvariance[i]) for i in num_indp_inputs]
+
     for t in 0:T
         # Initialize independent inputs, e.g. k, capital
-        x_indp = [exp.(rand(Normal(5,1), N)) for i in 1:num_indp_inputs]
+        x_indp = [exp.(rand(indp_inputs_distributions[i], N)) for i in 1:num_indp_inputs]
 
         for n in 1:N
             for i in 1:num_indp_inputs

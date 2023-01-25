@@ -5,7 +5,7 @@ include("config.jl")
 ################
 
 """
-    dlwGMMIV(year, plantid, Q, input1, input2, inputs...; bstart = [], prodF="CD", opt="nm", max_iters = 500, δ_nm = 0.1)
+    dlwGMMIV(year, plantid, Q, num_indp_inputs, input1, input2, inputs...; bstart = [], prodF="CD", opt="nm", max_iters = 500, δ_nm = 0.1)
 
 
 """

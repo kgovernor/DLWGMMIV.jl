@@ -1,5 +1,5 @@
 # This is the alternative function for simulating Cobb Douglas data for K and L only. (Should be faster than simdata.jl function)
-function sim_data_solved_L_CD(N, T; omega = 1, seed = -1, alpha_k = 0.1, alpha_l = 0.25, gamma_l = 0.15, rho0 = 0, rho1 = 0.8, rho2 = 0.8, rho3 = 0.8)  
+function sim_data_solved_L_CD(N, T; omega = 1, seed = -1, alpha_k = 0.1, alpha_l = 0.25, gamma_l = 0.15, rho0 = 0, rho1 = 0.8, rho2 = 0.8, rho3 = 0.8, lnK_mean = 0, lnK_var = 1)  
     if seed >= 0
         Random.seed!(seed)
     end
@@ -19,13 +19,13 @@ function sim_data_solved_L_CD(N, T; omega = 1, seed = -1, alpha_k = 0.1, alpha_l
     solve_L(K, ω) = ((α_l/(1+γ_l)) * exp(ω) * (K ^ α_k)) ^ (1/(1+γ_l-α_l))
      
     # Initialize ω_it and TFP shock distribution
-    ω_it = rand(Normal(0, 1), N)
+    ω_it = rand(Normal(0, σ_ω), N)
     TFP_shock_dist = Normal(0, σ_ω)
     ξ = zeros(N)
     TFP_shock = ξ
 
     # Initialize omega and K
-    K = exp.(rand(Normal(0,1), N*(T+1)))
+    K = exp.(rand(Normal(lnK_mean,lnK_var), N*(T+1)))
     omega = ω_it
 
     for t in 1:T
