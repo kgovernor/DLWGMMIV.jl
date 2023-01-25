@@ -49,5 +49,14 @@ function sim_data_solved_L_CD(N, T; omega = 1, seed = -1, alpha_k = 0.1, alpha_l
     # Save results to DataFrame
     firm_decision_df = DataFrame(time = repeat(0:T, inner = N), firm = repeat(1:N, outer = (T+1)), K = K, L = L_opt, S = S_opt, Y = Y_opt, P = P_opt, W = W, SL = SL, SLy = SLy, omega_i = omega, XI = ξ)
 
-    return (df=firm_decision_df, params=params)
+    # Summary
+    vc = sim_data_validity_check_solved_L_CD(firm_decision_df, params)
+    total_obs = nrow(firm_decision_df)
+    println("\n=======================\n")
+    println("SUMMARY:")
+    println("\t$(round(100*count(vc.foc_pass)/total_obs, digits = 2))% of observations passed first order conditions.")
+    println("\t$(round(100*count(vc.soc_pass)/total_obs, digits = 2))% of observations passed second order conditions.")
+    println("\n=======================\n")
+    
+    return (df=firm_decision_df, params=params, derivative_check = vc)
 end

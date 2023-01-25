@@ -12,11 +12,11 @@ using Test
     println("\nPerformance of sim_data_solved_L:")
     @time res_SL = DLWGMMIV.sim_data_solved_L_CD(N,T)
 
-    println("Performance of sim_data:")
+    println("\nPerformance of sim_data:")
     res = []
-    @time res = [res; DLWGMMIV.sim_data(N,T)]
+    @time res = [res; DLWGMMIV.sim_data(N,T, prod_params = [0.1])]
     @time res = [res; DLWGMMIV.sim_data(N,T, prod_params = [0.1, 0.25, 0.05], prodF ="tl")]
-    @time res = [res; DLWGMMIV.sim_data(N,T, num_inputs = 3, input_names = ["k", "l", "m"], prod_params = [0.1, 0.25, 0.2])]
+    @time res = [res; DLWGMMIV.sim_data(N,T, num_inputs = 3, input_names = ["k", "l", "m"], prod_params = [0.1, 0.25, 0.6])]
     @time res = [res; DLWGMMIV.sim_data(N,T, num_inputs = 3, input_names = ["k", "l", "m"], prod_params = [0.1, 0.25, 0.2, 0.05], prodF ="tl")]
 
     println("\n==========================================")
@@ -76,7 +76,7 @@ using Test
         desc = description[i]
 
         println("  For $(desc[1]) Optimization, solve $(desc[2]): ")
-        println("  convergence = $(res_iv.conv_msg) |\n  valstart, valend = $(res_iv.valstart), $(res_iv.valend) |\n  betas = $(res_iv.beta_dlw) |\n  g_b = $(res_iv.other_results.g_b) \n\n")
+        println("  \tconvergence = $(res_iv.conv_msg) |\n  \tvalstart, valend = $(res_iv.valstart), $(res_iv.valend) |\n  \tbetas = $(res_iv.beta_dlw) |\n  \tg_b = $(res_iv.other_results.g_b) \n\n")
     end
 
     # For simmed data
@@ -94,7 +94,7 @@ using Test
             desc = description[i]
 
             println("  For $(desc[1]) Optimization, solve $(desc[2]): ")
-            println("  convergence = $(res_iv.conv_msg) |\n  valstart, valend = $(res_iv.valstart), $(res_iv.valend) |\n  betas = $(res_iv.beta_dlw) |\n  g_b = $(res_iv.other_results.g_b) \n\n")
+            println("  \tconvergence = $(res_iv.conv_msg) |\n  \tvalstart, valend = $(res_iv.valstart), $(res_iv.valend) |\n  \tbetas = $(res_iv.beta_dlw) |\n  \tg_b = $(res_iv.other_results.g_b) \n\n")
         end
     end
         println("\n==========================================")

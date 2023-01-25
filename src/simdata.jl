@@ -12,7 +12,7 @@ TBW
 
 """
 function sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["k", "l"], prod_params = [0.1, 0.25], cost_params = [0, 0.15], omega_params = [0, 0.8, 0, 0], σ_ω = 1, seed = -1, X_start = 1000, prodF = "CD", costF = "ce")
-    println("\n\nSim Data for $(num_inputs) inputs, $(prodF)\n\n")
+    println("\n\nSim Data for $(num_inputs) inputs, $(prodF)")
     if seed >= 0
         Random.seed!(seed)
     end
@@ -35,6 +35,7 @@ function sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["k"
 
     # Initialize model
     model = Model(Ipopt.Optimizer)
+    set_optimizer_attribute(model, "bound_relax_factor", 0.0)
     set_silent(model)
     @NLparameter(model, p[i = 1:(num_indp_inputs+1)] == i)
 
@@ -53,14 +54,14 @@ function sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["k"
     #######################################
         
     # Initialize ω_it and TFP shock distribution
-    ω_it = rand(Normal(0, 1), N)
     TFP_shock_dist = Normal(0, σ_ω)
+    ω_it = rand(TFP_shock_dist, N)
     ξ = zeros(N)
     TFP_shock = ξ
 
     for t in 0:T
         # Initialize independent inputs, e.g. k, capital
-        x_indp = [exp.(rand(Normal(0,1), N)) for i in 1:num_indp_inputs]
+        x_indp = [exp.(rand(Normal(5,1), N)) for i in 1:num_indp_inputs]
 
         for n in 1:N
             for i in 1:num_indp_inputs
@@ -93,7 +94,17 @@ function sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["k"
     funcs = (S_func = S_func, TC_func = TC_func)
     input_params = (input_names = input_names, num_inputs = num_inputs, num_indp_inputs = num_indp_inputs)
 
-    return (df=firm_decision_df, params=params, funcs = funcs, input_params = input_params)
+    # Summary
+    vc = sim_data_validity_check(firm_decision_df, params, funcs, input_params)
+    total_obs = nrow(firm_decision_df)
+    println("\n=======================\n")
+    println("SUMMARY:")
+    println("\t$(round(100*count(i->(i=="LOCALLY_SOLVED"),firm_decision_df.termination)/total_obs, digits = 2))% of observations passed optimization generating the simulated data.")
+    println("\t$(round(100*count(vc.foc_pass)/total_obs, digits = 2))% of observations passed first order conditions.")
+    println("\t$(round(100*count(vc.soc_pass)/total_obs, digits = 2))% of observations passed second order conditions.")
+    println("\n=======================\n")
+        
+    return (df=firm_decision_df, params=params, funcs = funcs, input_params = input_params, derivative_check = vc)
 end
 
 function check_options(num_inputs, num_indp_inputs, prodF, costF)
