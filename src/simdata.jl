@@ -4,12 +4,28 @@
 include("simdataCD_KL.jl")
 include("checksimdata.jl")
 
+
 """
-    sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["K", "L"], prod_params = [0.1, 0.25], cost_params = [0, 0.15], omega_params = [0, 0.8, 0, 0], σ_ω = 1, indp_inputs_lnmean = [5], indp_inputs_lnvariance = [1], seed = -1, X_start = 1000, prodF = "CD", costF = "ce")
+    DLWGMMIV.sim_data(N, T; <keyword arguments>)
 
+Returns a `NamedTuple` containing a `DataFrame` of a panel dataset of `N` firms over `T+1` periods with specified parameters.
 
-TBW
+# Arguments
+- `num_inputs::Integer=2`: the total number of production inputs to generate.
+- `num_indp_inputs::Integer=1`: the number of independent inputs to generate.
+- `input_names::Vector{String}`: a list of input names. Default is `["K","L","X1",X2",...]`.
+- `prod_params::Vector{Real}`: a list of parameters for the production function.
+- `cost_params::Vector{Real}`: a list of parameters for the cost function.
+- `omega_params::Vector{Real}`: a list of parameters for production technology function.
+- `σ_ω::Real=1`: the variance associated with the productivity shock each period.
+- `indp_inputs_lnmean::Vector{Real}`: a list of natural log of mean values for each independent input.
+- `indp_inputs_lnvariance::Vector{Real}`: a list of variances for each natural log of independent input.
+- `seed::Integer`: sets a seed for `Random` number generator. Default is `-1`, no seed set.
+- `X_start::Integer=1000`: set starting values for optimizer which calculates optimal level of dependent inputs for each firm.
 
+# Configurable Options
+- `prodF::String`: the production function parameter. Default is `"CD"`, Cobb-Douglas; other options include `"tl"`, TransLog.
+- `costF::String`: the cost function parameter. Default is `"ce"`, constant elasticity.
 """
 function sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["K", "L"], prod_params = [0.1, 0.25], cost_params = [0, 0.15], omega_params = [0, 0.8, 0, 0], σ_ω = 1, indp_inputs_lnmean = [5], indp_inputs_lnvariance = [1], seed = -1, X_start = 1000, prodF = "CD", costF = "ce")
     println("\n\nSim Data for $(num_inputs) inputs, $(prodF)")

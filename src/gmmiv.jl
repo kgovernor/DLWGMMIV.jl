@@ -4,12 +4,25 @@ include("config.jl")
 # Main methods #
 ################
 
-"""
-    dlwGMMIV(year, plantid, Q, num_indp_inputs, input1, input2, inputs...; bstart = [], prodF="CD", opt="nm", max_iters = 500, δ_nm = 0.1)
-
 
 """
-function dlwGMMIV(year, plantid, Q, num_indp_inputs, input1, input2, inputs...; bstart = [], prodF="CD", opt="nm", max_iters = 500, δ_nm = 0.1)
+    dlwGMMIV(year, plantid, Q, inputs...; <keyword arguments>)
+
+Returns results for estimated betas from GMM IV for industry's production function `prodF` given panel data with `year`, `plantid`, `inputs...` (with independent/dynamic inputs listed first), and output, `Q`.
+ 
+Results are returned as a `NamedTuple`.
+
+# Arguments
+- `num_indp_inputs::Integer=1`: the number of independent/dynamic inputs.
+- `bstart::Vector{Float64}`: the starting beta values for optimization. Defaults to zeros.
+- `δ_nm::Float64`=0.1: the Nelder-Mead shrink step parameter, delta.
+- `max_iters::Integer=500`: the maximum number of iterations ran in optimization.
+
+# Configurable Options
+- `prodF::String`: the production function to estimate. Default is `"CD"`, Cobb-Douglas; other options include `"tl"`, TransLog.
+- `opt::String`: the optimization method to use. Default is `"nm"`, Nelder-Mead; other options include `"LBFGS"`.
+"""
+function dlwGMMIV(year, plantid, Q, inputs...; num_indp_inputs = 1, bstart = [], prodF="CD", opt="nm", δ_nm = 0.1, max_iters = 500)
     prodF_options = ["CD", "tl"]
     optimization_options = ["nm", "LBFGS"]
     if (prodF ∉ prodF_options) || (opt ∉ optimization_options) 
@@ -18,7 +31,7 @@ function dlwGMMIV(year, plantid, Q, num_indp_inputs, input1, input2, inputs...; 
         return
     end
 
-    inputs = [[input1, input2]; collect(inputs)]
+    inputs = collect(inputs)
 
     df = DataConfig(year, plantid, Q, inputs...)
     X_str, X, X_lag, Z = gen_inputset(df, num_indp_inputs, inputs, prodF)
@@ -37,7 +50,7 @@ function dlwGMMIV(year, plantid, Q, num_indp_inputs, input1, input2, inputs...; 
     nm_parameters = Optim.FixedParameters(δ = δ_nm)
           
     if opt == "LBFGS"
-        p = Optim.optimize(crit, bstart, LBFGS(); autodiff = :forward)
+        p = Optim.optimize(crit, bstart, LBFGS(), opt_parameters; autodiff = :forward)
     elseif opt == "nm"   
         p = Optim.optimize(crit, bstart, NelderMead(parameters  = nm_parameters), opt_parameters)
     end

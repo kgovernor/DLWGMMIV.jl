@@ -65,7 +65,7 @@ using Test
     # For solved L data
     println("Results for solved_L data:")
     df_SL = res_SL.df
-    testdata_SL = [df_SL.time, df_SL.firm, df_SL.Y, 1, df_SL.K, df_SL.L]
+    testdata_SL = [df_SL.time, df_SL.firm, df_SL.Y, df_SL.K, df_SL.L]
     @time results = [dlwGMMIV(testdata_SL...)]
     @time results = [results; dlwGMMIV(testdata_SL..., opt = "LBFGS")]
     @time results = [results; dlwGMMIV(testdata_SL..., prodF ="tl")]
@@ -83,11 +83,11 @@ using Test
     for r in res
         println("Results for Simmed Data $(r.input_params.num_inputs) inputs, $(r.params.prodF)\n")
         df = r.df
-        testdata = [df.time, df.firm, df.Y, r.input_params.num_indp_inputs, [df[:,input] for input in r.input_params.input_names]...]
-        @time results = [dlwGMMIV(testdata...)]
-        @time results = [results; dlwGMMIV(testdata..., opt = "LBFGS")]
-        @time results = [results; dlwGMMIV(testdata..., prodF ="tl")]
-        @time results = [results; dlwGMMIV(testdata..., opt = "LBFGS", prodF = "tl")]
+        testdata = [df.time, df.firm, df.Y, [df[:,input] for input in r.input_params.input_names]...]
+        @time results = [dlwGMMIV(testdata..., num_indp_inputs = r.input_params.num_indp_inputs)]
+        @time results = [results; dlwGMMIV(testdata..., num_indp_inputs = r.input_params.num_indp_inputs, opt = "LBFGS")]
+        @time results = [results; dlwGMMIV(testdata..., num_indp_inputs = r.input_params.num_indp_inputs, prodF ="tl")]
+        @time results = [results; dlwGMMIV(testdata..., num_indp_inputs = r.input_params.num_indp_inputs, opt = "LBFGS", prodF = "tl")]
 
         for i in eachindex(results)
             res_iv = results[i]
