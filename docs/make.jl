@@ -2,7 +2,7 @@ using Documenter
 using DLWGMMIV
 
 makedocs(
-    sitename = "DLWGMMIV",
+    sitename = "DLWGMMIV.jl",
     format = Documenter.HTML(),
     modules = [DLWGMMIV],
     pages = [

@@ -5,3 +5,5 @@
 /packages/
 testscript.jl
 testtestscript.jl
+.travis.yml
+.appveyor.yml
