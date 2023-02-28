@@ -21,6 +21,55 @@ Results are returned as a `NamedTuple`.
 # Configurable Options
 - `prodF::String`: the production function to estimate. Default is `"CD"`, Cobb-Douglas; other options include `"tl"`, TransLog.
 - `opt::String`: the optimization method to use. Default is `"nm"`, Nelder-Mead; other options include `"LBFGS"`.
+
+# Examples
+```jldoctest
+julia> using DLWGMMIV
+
+julia> df = DLWGMMIV.sim_data(20000, 10, input_names = ["K", "L"], prod_params = [0.1, 0.25]).df;
+[...]
+
+julia> data = [df.time, df.firm, df.Y, df.K, df.L];
+
+julia> res = dlwGMMIV(data...);
+
+julia> println("
+Converge = \$(res.conv_msg)\\n
+Objective Value = \$(res.other_results.crit)\\n
+betas = \$(res.beta_dlw)
+")
+Converge = true
+
+Objective Value = 1.074768000861536e-9
+
+betas = (beta_x1 = 0.10230132568110045, beta_x2 = 0.26251910427769287)
+
+julia> res = dlwGMMIV(data..., opt = "LBFGS");
+
+julia> println("
+Converge = \$(res.conv_msg)\\n
+Objective Value = \$(res.other_results.crit)\\n
+betas = \$(res.beta_dlw)
+")
+Converge = true
+
+Objective Value = 3.6354547893764317e-19
+
+betas = (beta_x1 = 0.10230132472854156, beta_x2 = 0.2625190996231563)
+
+julia> res = dlwGMMIV(data..., opt = "LBFGS", prodF = "tl");
+
+julia> println("
+Converge = \$(res.conv_msg)\\n
+Objective Value = \$(res.other_results.crit)\\n
+betas = \$(res.beta_dlw)
+")
+Converge = true
+
+Objective Value = 3.1089429872638027e-15
+
+betas = (beta_x1 = 0.11394854106849515, beta_x2 = 1.9222327345314836, beta_x1x2 = -0.5175358152780514, beta_x12 = -0.04266689698177511, beta_x22 = 0.00703394572086843)
+```
 """
 function dlwGMMIV(year, plantid, Q, inputs...; num_indp_inputs = 1, bstart = [], prodF="CD", opt="nm", δ_nm = 0.1, max_iters = 500)
     prodF_options = ["CD", "tl"]
@@ -34,17 +83,13 @@ function dlwGMMIV(year, plantid, Q, inputs...; num_indp_inputs = 1, bstart = [],
     inputs = collect(inputs)
 
     df = DataConfig(year, plantid, Q, inputs...)
-    X_str, X, X_lag, Z = gen_inputset(df, num_indp_inputs, inputs, prodF)
+    X_str, X, X_lag, Z = gen_inputset(df, num_indp_inputs, length(inputs), prodF)
     
     crit(betas) = GMM_DLW2(betas, df.phi, df.phi_lag, X, X_lag, Z)
 
     # Initialize local optimization model
-    if isempty(bstart)
-        bstart = zeros(length(X_str))
-    elseif length(bstart) != length(X)
-        # TODO - write error function!!
-        println("error!")
-    end
+    bsize = prodF == "tl" ? length(inputs)*2 + binomial(length(inputs),2) : length(inputs)
+    bstart = isempty(bstart) ? zeros(bsize) : length(bstart) < bsize ? [bstart; zeros(bsize - length(bstart))] : bstart[begin:bsize]
     
     opt_parameters = Optim.Options(iterations = max_iters)
     nm_parameters = Optim.FixedParameters(δ = δ_nm)
@@ -98,8 +143,8 @@ end
 
 ### Production Function Inputs ###
 # Generate input set for GMM IV
-function gen_inputset(df, num_indp_inputs, inputs, prodF)
-    X_str = ["x"*string(i) for i in eachindex(inputs)]
+function gen_inputset(df, num_indp_inputs, num_inputs, prodF)
+    X_str = ["x"*string(i) for i in 1:num_inputs]
     X = Matrix(df[:, X_str.*"1"])
     X_lag = Matrix(df[:, X_str.*"_lag"])
     Z = Matrix(df[:, [X_str[begin:num_indp_inputs].*"1"; X_str[(num_indp_inputs+1):end].*"_lag"]])

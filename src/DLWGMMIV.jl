@@ -21,10 +21,11 @@ using Combinatorics
 
 using Optim
 #using GLM
-#using LinearSolve
+using LinearSolve
 
 include("simdata.jl")
 include("gmmiv.jl")
+include("testscript.jl")
 
 export dlwGMMIV
 
