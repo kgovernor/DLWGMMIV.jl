@@ -49,10 +49,10 @@ Y_t  &=  Output_t(X_t^*, \omega_t) \\
 TC_t &= Cost_t(X_t^*) \\
 P_t  &= Y - TC \\
 S_t  &= log(Y_t) - \omega_t \\
-C_{{x_i},t} &= Cost_t(x_{i,t}^*) \\
-rent_{{x_i},t} &= C_{{x_i},t} / x_{i,t}^* \\
-share\_TC_{{x_i},t} &= C_{{x_i},t} / TC_t \\
-share\_Y_{{x_i},t} &= C_{{x_i},t} / Y_t \\
+C_{x_i,t} &= Cost_t(x_{i,t}^*) \\
+rent_{x_i,t} &= C_{x_i,t} / x_{i,t}^* \\
+share\_TC_{x_i,t} &= C_{x_i,t} / TC_t \\
+share\_Y_{x_i,t} &= C_{x_i,t} / Y_t \\
 \end{aligned}$
 
 ### Production Functions
