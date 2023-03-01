@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Home · DLWGMMIV.jl</title><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.045/juliamono.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.24/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href>DLWGMMIV.jl</a></span></div><form class="docs-search" action="search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>Home</a><ul class="internal"><li><a class="tocitem" href="#Setup"><span>Setup</span></a></li><li><a class="tocitem" href="#De-Loecker-and-Warzynski-GMM-IV-(DLWGMMIV)-Production-Function-Estimation"><span>De Loecker and Warzynski GMM IV (DLWGMMIV) Production Function Estimation</span></a></li><li><a class="tocitem" href="#Simulating-Firm-Data"><span>Simulating Firm Data</span></a></li><li><a class="tocitem" href="#Examples"><span>Examples</span></a></li></ul></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Home</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Home</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/kgovernor/DLWGMMIV.jl/blob/master/docs/src/index.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><h1 id="DLWGMMIV"><a class="docs-heading-anchor" href="#DLWGMMIV">DLWGMMIV</a><a id="DLWGMMIV-1"></a><a class="docs-heading-anchor-permalink" href="#DLWGMMIV" title="Permalink"></a></h1><h2 id="Setup"><a class="docs-heading-anchor" href="#Setup">Setup</a><a id="Setup-1"></a><a class="docs-heading-anchor-permalink" href="#Setup" title="Permalink"></a></h2><p>DLWGMMIV can be installed from the package manager in Julia&#39;s REPL:</p><pre><code class="language-julia hljs">] add https://github.com/kgovernor/DLWGMMIV.jl.git</code></pre><h2 id="De-Loecker-and-Warzynski-GMM-IV-(DLWGMMIV)-Production-Function-Estimation"><a class="docs-heading-anchor" href="#De-Loecker-and-Warzynski-GMM-IV-(DLWGMMIV)-Production-Function-Estimation">De Loecker and Warzynski GMM IV (DLWGMMIV) Production Function Estimation</a><a id="De-Loecker-and-Warzynski-GMM-IV-(DLWGMMIV)-Production-Function-Estimation-1"></a><a class="docs-heading-anchor-permalink" href="#De-Loecker-and-Warzynski-GMM-IV-(DLWGMMIV)-Production-Function-Estimation" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-binding" id="DLWGMMIV.dlwGMMIV" href="#DLWGMMIV.dlwGMMIV"><code>DLWGMMIV.dlwGMMIV</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">dlwGMMIV(year, plantid, Q, inputs...; &lt;keyword arguments&gt;)</code></pre><p>Returns results for estimated betas from GMM IV for industry&#39;s production function <code>prodF</code> given panel data with <code>year</code>, <code>plantid</code>, <code>inputs...</code> (with independent/dynamic inputs listed first), and output, <code>Q</code>.</p><p>Results are returned as a <code>NamedTuple</code>.</p><p><strong>Arguments</strong></p><ul><li><code>num_indp_inputs::Integer=1</code>: the number of independent/dynamic inputs.</li><li><code>bstart::Vector{Float64}</code>: the starting beta values for optimization. Defaults to zeros.</li><li><code>δ_nm::Float64</code>=0.1: the Nelder-Mead shrink step parameter, delta.</li><li><code>max_iters::Integer=500</code>: the maximum number of iterations ran in optimization.</li></ul><p><strong>Configurable Options</strong></p><ul><li><code>prodF::String</code>: the production function to estimate. Default is <code>&quot;CD&quot;</code>, Cobb-Douglas; other options include <code>&quot;tl&quot;</code>, TransLog.</li><li><code>opt::String</code>: the optimization method to use. Default is <code>&quot;nm&quot;</code>, Nelder-Mead; other options include <code>&quot;LBFGS&quot;</code>.</li></ul><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using DLWGMMIV
+
+julia&gt; df = DLWGMMIV.sim_data(20000, 10, input_names = [&quot;K&quot;, &quot;L&quot;], prod_params = [0.1, 0.25]).df;
+[...]
+
+julia&gt; data = [df.time, df.firm, df.Y, df.K, df.L];
+
+julia&gt; res = dlwGMMIV(data...);
+
+julia&gt; println(&quot;
+Converge = $(res.conv_msg)\n
+Objective Value = $(res.other_results.crit)\n
+betas = $(res.beta_dlw)
+&quot;)
+Converge = true
+
+Objective Value = 1.074768000861536e-9
+
+betas = (beta_x1 = 0.10230132568110045, beta_x2 = 0.26251910427769287)
+
+julia&gt; res = dlwGMMIV(data..., opt = &quot;LBFGS&quot;);
+
+julia&gt; println(&quot;
+Converge = $(res.conv_msg)\n
+Objective Value = $(res.other_results.crit)\n
+betas = $(res.beta_dlw)
+&quot;)
+Converge = true
+
+Objective Value = 3.6354547893764317e-19
+
+betas = (beta_x1 = 0.10230132472854156, beta_x2 = 0.2625190996231563)
+
+julia&gt; res = dlwGMMIV(data..., opt = &quot;LBFGS&quot;, prodF = &quot;tl&quot;);
+
+julia&gt; println(&quot;
+Converge = $(res.conv_msg)\n
+Objective Value = $(res.other_results.crit)\n
+betas = $(res.beta_dlw)
+&quot;)
+Converge = true
+
+Objective Value = 3.1089429872638027e-15
+
+betas = (beta_x1 = 0.11394854106849515, beta_x2 = 1.9222327345314836, beta_x1x2 = -0.5175358152780514, beta_x12 = -0.04266689698177511, beta_x22 = 0.00703394572086843)</code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/kgovernor/DLWGMMIV.jl/blob/e1f3e9ef6e04c2a172b1df6f6f7ac714aabed3dd/src/gmmiv.jl#L8-L73">source</a></section></article><h2 id="Simulating-Firm-Data"><a class="docs-heading-anchor" href="#Simulating-Firm-Data">Simulating Firm Data</a><a id="Simulating-Firm-Data-1"></a><a class="docs-heading-anchor-permalink" href="#Simulating-Firm-Data" title="Permalink"></a></h2><article class="docstring"><header><a class="docstring-binding" id="DLWGMMIV.sim_data" href="#DLWGMMIV.sim_data"><code>DLWGMMIV.sim_data</code></a> — <span class="docstring-category">Function</span></header><section><div><pre><code class="language-julia hljs">DLWGMMIV.sim_data(N, T; &lt;keyword arguments&gt;)</code></pre><p>Returns a <code>NamedTuple</code> containing a <code>DataFrame</code> of a panel dataset of <code>N</code> firms over <code>T+1</code> periods with specified parameters.</p><p><strong>Arguments</strong></p><ul><li><code>num_inputs::Integer=2</code>: the total number of production inputs to generate.</li><li><code>num_indp_inputs::Integer=1</code>: the number of independent inputs to generate.</li><li><code>input_names::Vector{String}</code>: a list of input names. Default is `[&quot;K&quot;,&quot;L&quot;]. Additional inputs get a value of &quot;X1&quot;,&quot;X2&quot;,... .</li><li><code>prod_params::Vector{Real}</code>: a list of parameters for the production function. Default is [0.1, 0.25]. Additional inputs get a value that is equal to 1 minus sum(prod_params) divided by the number of additional inputs, and TransLog second order terms get a value of 0.</li><li><code>cost_params::Vector{Real}</code>: a list of parameters for the cost function. Default is [0, 0.15]. Additional inputs get a value of 0.</li><li><code>omega_params::Vector{Real}</code>: a list of parameters for production technology function. Default is [0, 0.8, 0, 0].</li><li><code>indp_inputs_params:: Vector{Real}</code>: a list of parameters for independent inputs process. Default is [1]. Additional independent inputs get a value of 1.</li><li><code>σ_ω::Real=1</code>: the variance associated with the productivity shock each period.</li><li><code>indp_inputs_lnmean::Vector{Real}</code>: a list of natural log of mean values for each independent input. Default is [5]. Additional independent inputs get a value of 5.</li><li><code>indp_inputs_lnvariance::Vector{Real}</code>: a list of variances for each natural log of independent input. Default is [1]. Additional independent inputs get a value of 1.</li><li><code>seed::Integer</code>: sets a seed for <code>Random</code> number generator. Default is <code>-1</code>, no seed set.</li><li><code>X_start::Integer=1000</code>: set starting values for optimizer which calculates optimal level of dependent inputs for each firm.</li></ul><p><strong>Configurable Options</strong></p><ul><li><code>prodF::String</code>: the production function parameter. Default is <code>&quot;CD&quot;</code>, Cobb-Douglas; other options include <code>&quot;tl&quot;</code>, TransLog.</li><li><code>costF::String</code>: the cost function parameter. Default is <code>&quot;ce&quot;</code>, constant elasticity.</li></ul><p><strong>Examples</strong></p><pre><code class="language-julia-repl hljs">julia&gt; using DLWGMMIV
+
+julia&gt; df = DLWGMMIV.sim_data(20, 10).df
+Sim Data for 2 inputs, CD
+
+K Parameters:
+    K_prod_params = 0.1 | K_cost_params = 0.0
+L Parameters:
+    L_prod_params = 0.25 | L_cost_params = 0.15
+
+    First order derivative at optimal L is approximately zero: true
+
+    Second order derivative at optimal L check: true
+
+=======================
+
+SUMMARY:
+        100.0% of observations passed first order conditions.
+        100.0% of observations passed second order conditions.
+
+=======================
+    
+220×18 DataFrame
+Row │ time   firm   S           Y           P          TC        omega_i    XI          K         L          C_K       C_L        rent_K   rent_L ⋯
+    │ Int64  Int64  Float64     Float64     Float64    Float64   Float64    Float64     Float64   Any        Float64   Float64    Float64  Float6 ⋯
+────┼──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+  1 │     0      1   0.594649    3.60282    -647.634   651.237    0.687066   0.0        650.454   0.808584   650.454   0.783221       1.0  0.9686 ⋯
+  2 │     0      2   0.151929    1.02321    -119.13    120.154   -0.12898    0.0        119.931   0.270617   119.931   0.222438       1.0  0.8219  
+  3 │     0      3  -0.0790732   0.4036      -89.6328   90.0364  -0.828257   0.0         89.9487  0.120514    89.9487  0.0877392      1.0  0.7280  
+ ⋮  │    ⋮      ⋮        ⋮           ⋮           ⋮          ⋮          ⋮          ⋮          ⋮          ⋮         ⋮          ⋮             ⋮        ⋮   ⋱ 
+219 │    10     19  -0.26828     0.120173   -188.737   188.857   -1.85054    0.0152269  188.831   0.0420262  188.831   0.0261245      1.0  0.6216  
+220 │    10     20  -0.475736    0.0675116   -83.0301   83.0976  -2.21972   -1.24907     83.0829  0.025454    83.0829  0.0146764      1.0  0.5765 ⋯                                                                                                                      
+                                                                                                                      5 columns and 215 rows omitted
+
+julia&gt; df = DLWGMMIV.sim_data(20, 10, num_inputs = 3, input_names = [&quot;k&quot;, &quot;l&quot;, &quot;m&quot;], prod_params = [0.1, 0.25, 0.2, 0.05], prodF =&quot;tl&quot;).df
+Sim Data for 3 inputs, tl
+
+k Parameters:
+    k_prod_params = 0.1 | k_cost_params = 0.0  
+l Parameters:
+    l_prod_params = 0.25 | l_cost_params = 0.15
+m Parameters:
+    m_prod_params = 0.2 | m_cost_params = 0.0  
+kl Parameters:
+    kl_prod_params = 0.05 |
+km Parameters:
+    km_prod_params = 0.0 |
+lm Parameters:
+    lm_prod_params = 0.0 |
+k2 Parameters:
+    k2_prod_params = 0.0 |
+l2 Parameters:
+    l2_prod_params = 0.0 |
+m2 Parameters:
+    m2_prod_params = 0.0 |
+
+******************************************************************************
+This program contains Ipopt, a library for large-scale nonlinear optimization.
+    Ipopt is released as open source code under the Eclipse Public License (EPL).
+            For more information visit https://github.com/coin-or/Ipopt
+******************************************************************************
+
+
+    First order derivative at optimal L is approximately zero: true
+
+    Second order derivative at optimal L check: true
+
+=======================
+
+SUMMARY:
+        100.0% of observations passed optimization generating the simulated data.
+        100.0% of observations passed first order conditions.
+        100.0% of observations passed second order conditions.
+
+=======================
+
+220×24 DataFrame
+Row │ time   firm   XI         k          l          m           Y          S          P          TC        omega_i    termination     C_k        ⋯   
+    │ Int64  Int64  Float64    Float64    Float64    Float64     Float64    Float64    Float64    Float64   Float64    String          Float64    ⋯
+────┼────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────── 
+  1 │     0      1   0.0       245.378    0.0790147  0.0236492   0.118246   -1.53147   -245.337   245.456   -0.603513  LOCALLY_SOLVED  245.378    ⋯ 
+  2 │     0      2   0.0       194.093    1.1433     0.522569    2.61285     0.465793  -193.17    195.782    0.494648  LOCALLY_SOLVED  194.093     
+  3 │     0      3   0.0        55.9995   0.0584379  0.0194533   0.0972665  -1.66692    -55.9599   56.0572  -0.663383  LOCALLY_SOLVED   55.9995    
+ ⋮  │     ⋮      ⋮        ⋮          ⋮          ⋮          ⋮           ⋮          ⋮            ⋮         ⋮          ⋮             ⋮             ⋮      ⋱ 
+219 │    10     19   0.117099  118.572    1.55853    0.783866    3.91933     0.64574   -117.102   121.021    0.72018   LOCALLY_SOLVED  118.572     
+220 │    10     20   0.460817    6.10519  0.227785   0.123259    0.616295   -0.741436    -5.7946    6.4109   0.257407  LOCALLY_SOLVED    6.10519  ⋯                                                                                                                     
+                                                                                                                     11 columns and 215 rows omitted                                                                                                                      </code></pre></div><a class="docs-sourcelink" target="_blank" href="https://github.com/kgovernor/DLWGMMIV.jl/blob/e1f3e9ef6e04c2a172b1df6f6f7ac714aabed3dd/src/simdata.jl#L8-L121">source</a></section></article><h3 id="Optimization-Problem"><a class="docs-heading-anchor" href="#Optimization-Problem">Optimization Problem</a><a id="Optimization-Problem-1"></a><a class="docs-heading-anchor-permalink" href="#Optimization-Problem" title="Permalink"></a></h3><p>Let <span>$N_{independent}$</span> and <span>$N$</span> be equal to <code>num_indp_inputs</code> and <code>num_inputs</code>, respectively. Let <span>$X_t = \{x_{1,t}, \dots, x_{N,t}\} \in \mathbb{R}_+^N$</span> and <span>$X_{t,independent} = \{x_{1,t}, \dots, x_{N_{independent},t}\}$</span>. <span>$N_{independent}$</span> must be greater than zero and less than <span>$N$</span>, <span>$0 &lt; N_{independent} &lt; N$</span>.</p><p>The firm chooses <span>$X_{t,dependent} = X_t \setminus X_{t,independent}$</span> that optimizes profits in each period <span>$t$</span>, <span>$t \in T = \{0,1,2,\dots\}$</span>.</p><p class="math-container">\[\begin{equation}
+\max_{X_{t,dependent}} Profit_t(X_t, \omega_t) \quad \forall t \in T
+\end{equation}\]</p><p>where <span>$\omega_t$</span> is the technology parameter, and <span>$Profit_t(X_t, \omega_t) = Output_t(X_t, \omega_t) - Cost_t(X_t)$</span>. The technology parameter <span>$\omega_t$</span> is subject to a Total Factor Productivity (TFP) shock <span>$\xi_t$</span>, where <span>$\xi_t \sim \mathcal{N}(0, \sigma_{\omega})$</span>.</p><p>Exogenous variables at period <span>$t=0$</span> are given by a random process. Specifically, for <span>$x_{i,0} \in X_{0,independent}$</span>, <span>$x_{i,0} \sim \mathcal{N}(\mu_{x_i}, \sigma_{x_i})$</span> and <span>$\omega_0 = \xi_0$</span>, where <span>$\mu_{x_i}$</span> and <span>$\sigma_{x_i}$</span> equal <code>indp_inputs_lnmean[i]</code> and <code>indp_inputs_lnvariance[i]</code>. For <span>$t&gt;0$</span>,</p><p class="math-container">\[x_{i,t} = \alpha_{x_i} x_{i,t-1}\]</p><p class="math-container">\[\omega_t = \sum_{i=0}^{3}c_i\omega_{t-1}^i + \xi_t\]</p><p>where <span>$\alpha_{x_i} =$</span> <span>$\sigma_{\alpha} \times$</span><code>indp_inputs_params[i]</code>, <span>$\sigma_{\alpha} \sim \mathcal{N}(0, 1)$</span>, and <span>$c_i =$</span> <code>omega_params[i]</code>.</p><p>Let <span>$X_{t}^*$</span> be the optimal solution to (1). Then,  </p><p class="math-container">\[\begin{aligned}
+Y_t  &amp;=  Output_t(X_t^*, \omega_t) \\
+TC_t &amp;= Cost_t(X_t^*) \\
+P_t  &amp;= Y - TC \\
+S_t  &amp;= log(Y_t) - \omega_t \\
+C_{x_i,t} &amp;= Cost_t(x_{i,t}^*) \\
+rent_{x_i,t} &amp;= C_{x_i,t} / x_{i,t}^* \\
+share\_TC_{x_i,t} &amp;= C_{x_i,t} / TC_t \\
+share\_Y_{x_i,t} &amp;= C_{x_i,t} / Y_t \\
+\end{aligned}\]</p><h3 id="Production-Functions"><a class="docs-heading-anchor" href="#Production-Functions">Production Functions</a><a id="Production-Functions-1"></a><a class="docs-heading-anchor-permalink" href="#Production-Functions" title="Permalink"></a></h3><h4 id="Cobb-Douglas"><a class="docs-heading-anchor" href="#Cobb-Douglas">Cobb Douglas</a><a id="Cobb-Douglas-1"></a><a class="docs-heading-anchor-permalink" href="#Cobb-Douglas" title="Permalink"></a></h4><p class="math-container">\[Output_t(X_t, \omega_t) = \exp(\omega_t)\prod_{i=1}^{N}x_{i,t}^{\beta_i}\]</p><p>where <code>prod_params</code> = <span>$\{\beta_1, \beta_2, \dots, \beta_N\}$</span>.</p><h4 id="TransLog"><a class="docs-heading-anchor" href="#TransLog">TransLog</a><a id="TransLog-1"></a><a class="docs-heading-anchor-permalink" href="#TransLog" title="Permalink"></a></h4><p class="math-container">\[\begin{align*}
+Output_t(X_t, \omega_t) &amp;= \exp(\omega_t + \sum_{i=1}^{N}\beta_ilog(x_{i,t}) \\
+&amp;+ \sum_{i=1}^{N}\sum_{j=i}^{N}\beta_{i,j}log(x_{i,t})log(x_{j,t}))
+\end{align*}\]</p><p>where <code>prod_params</code> = <span>$\{\beta_1, \beta_2, \dots, \beta_N,$</span>  <span>$\beta_{1,2}, \dots, \beta_{1,N}, \dots, \beta_{i,i+1}, \dots, \beta_{i,N}, \dots, \beta_{N-1,N},$</span>  <span>$\beta_{1,1}, \beta_{2,2}, \dots, \beta_{N,N}\}$</span>.</p><h3 id="Cost-Functions"><a class="docs-heading-anchor" href="#Cost-Functions">Cost Functions</a><a id="Cost-Functions-1"></a><a class="docs-heading-anchor-permalink" href="#Cost-Functions" title="Permalink"></a></h3><h4 id="Constant-Elasticity"><a class="docs-heading-anchor" href="#Constant-Elasticity">Constant Elasticity</a><a id="Constant-Elasticity-1"></a><a class="docs-heading-anchor-permalink" href="#Constant-Elasticity" title="Permalink"></a></h4><p class="math-container">\[Cost_t(X_t) = \sum_{i=1}^{N}x_{i,t}^{\gamma_i+1}\]</p><p>where <code>cost_params[i]</code> <span>$= \gamma_i$</span>.</p><h2 id="Examples"><a class="docs-heading-anchor" href="#Examples">Examples</a><a id="Examples-1"></a><a class="docs-heading-anchor-permalink" href="#Examples" title="Permalink"></a></h2><h3 id="Cobb-Douglas-Example"><a class="docs-heading-anchor" href="#Cobb-Douglas-Example">Cobb Douglas Example</a><a id="Cobb-Douglas-Example-1"></a><a class="docs-heading-anchor-permalink" href="#Cobb-Douglas-Example" title="Permalink"></a></h3><p>Let&#39;s first simulate data for industry A with 20,000 firms over 10 periods with an additional initial period 0. The production function in industry A is Cobb-Douglas with two inputs capital, <span>$k$</span>, and labour, <span>$l$</span> with coefficients 0.1, 0.2, respectively.</p><p>Let <span>$k$</span> be the only independent input, <span>$log(k_0) \sim \mathcal{N}(10, 2)$</span>. </p><p>All other parameters accept default values.</p><pre><code class="language-julia hljs">julia&gt; using DLWGMMIV
+
+julia&gt; input_names = [&quot;k&quot;,&quot;l&quot;]
+
+julia&gt; num_inputs = length(input_names)
+
+julia&gt; prod_params = [0.1, 0.2]
+
+julia&gt; indp_inputs_lnmean = [10]
+
+julia&gt; indp_inputs_lnvariance = [2]
+
+julia&gt; df = DLWGMMIV.sim_data(20000, 10, 
+    num_inputs = num_inputs,
+    input_names = input_names, 
+    prod_params = prod_params, 
+    indp_inputs_lnmean = indp_inputs_lnmean, 
+    indp_inputs_lnvariance = indp_inputs_lnvariance
+    ).df;
+
+Sim Data for 2 inputs, CD
+
+k Parameters:
+  k_prod_params = 0.1 | k_cost_params = 0.0
+l Parameters:
+  l_prod_params = 0.2 | l_cost_params = 0.15
+
+  First order derivative at optimal L is approximately zero: true
+
+  Second order derivative at optimal L check: true
+
+=======================
+
+SUMMARY:
+        100.0% of observations passed first order conditions.
+        100.0% of observations passed second order conditions.
+
+=======================</code></pre><p>Use the GMM IV to estimate the productivity parameters in industry A. Let&#39;s set <code>bstart</code> to [0.08, 0], assume a Cobb Douglas production function for industry A, and use both the Nelder Mead and LBFGS optimization methods. </p><pre><code class="language-julia hljs">julia&gt; data = [df.time, df.firm, df.Y, df.k, df.l];
+
+julia&gt; bstart = [0.08, 0];
+
+julia&gt; res_nm = dlwGMMIV(data..., bstart = bstart);
+
+julia&gt; res_lbfgs = dlwGMMIV(data..., bstart = bstart, opt = &quot;LBFGS&quot;);
+
+julia&gt; println(&quot;
+Nelder Mead:\n
+Converge = $(res_nm.conv_msg)\n
+Objective Value = $(res_nm.other_results.crit)\n
+betas = $(res_nm.beta_dlw)
+\n
+LBFGS:\n
+Converge = $(res_lbfgs.conv_msg)\n
+Objective Value = $(res_lbfgs.other_results.crit)\n
+betas = $(res_lbfgs.beta_dlw)
+&quot;)
+
+Nelder Mead:
+
+Converge = true
+
+Objective Value = 4.965822136980516e-10
+
+betas = (beta_x1 = 0.09539780702143216, beta_x2 = 0.17476298604850368)
+
+
+LBFGS:
+
+Converge = true
+
+Objective Value = 1.42422490360313e-19
+
+betas = (beta_x1 = 0.09539780702934003, beta_x2 = 0.17476298621274525)</code></pre><h3 id="TransLog-Example"><a class="docs-heading-anchor" href="#TransLog-Example">TransLog Example</a><a id="TransLog-Example-1"></a><a class="docs-heading-anchor-permalink" href="#TransLog-Example" title="Permalink"></a></h3><p>Now let&#39;s simulate data for industry B with 200 firms over 5 periods with an additional initial period 0. The production function in industry B is TransLog with three inputs capital, <span>$k$</span>, labour, <span>$l$</span>, and material, <span>$m$</span> with coefficients 0.1, 0.25, 0.2, respectively, and for second order term <span>$km$</span> the coefficient is 0.01.</p><p>All other parameters accept default values.</p><pre><code class="language-julia hljs">julia&gt; using DLWGMMIV
+
+julia&gt; input_names = [&quot;k&quot;,&quot;l&quot;,&quot;m&quot;]
+
+julia&gt; num_inputs = length(input_names)
+
+julia&gt; prod_params = [0.1, 0.25, 0.2, 0, 0.01]
+
+julia&gt; df = DLWGMMIV.sim_data(200, 5, 
+    num_inputs = num_inputs,
+    input_names = input_names, 
+    prod_params = prod_params,
+    prodF = &quot;tl&quot; 
+    ).df;
+
+Sim Data for 3 inputs, tl
+
+k Parameters:
+  k_prod_params = 0.1 | k_cost_params = 0.0
+l Parameters:
+  l_prod_params = 0.25 | l_cost_params = 0.15
+m Parameters:
+  m_prod_params = 0.2 | m_cost_params = 0.0
+kl Parameters:
+  kl_prod_params = 0.0 |
+km Parameters:
+  km_prod_params = 0.01 |
+lm Parameters:
+  lm_prod_params = 0.0 |
+k2 Parameters:
+  k2_prod_params = 0.0 |
+l2 Parameters:
+  l2_prod_params = 0.0 |
+m2 Parameters:
+  m2_prod_params = 0.0 |
+
+  First order derivative at optimal L is approximately zero: true
+
+  Second order derivative at optimal L check: true
+
+=======================
+
+SUMMARY:
+        100.0% of observations passed optimization generating the simulated data.
+        100.0% of observations passed first order conditions.
+        100.0% of observations passed second order conditions.
+
+=======================</code></pre><p>Use the GMM IV to estimate the productivity parameters in industry B. Let&#39;s set <code>bstart</code> to [0.08, 0, 0, 0, 0.015, 0, 0, 0, 0], assume a TransLog production function for industry B, and use both the Nelder Mead and LBFGS optimization methods. </p><pre><code class="language-julia hljs">julia&gt; data = [df.time, df.firm, df.Y, df.k, df.l, df.m];
+
+julia&gt; bstart = [0.08, 0, 0, 0, 0.015, 0, 0, 0, 0];
+
+julia&gt; res_nm = dlwGMMIV(data..., bstart = bstart, prodF = &quot;tl&quot;);
+
+julia&gt; res_lbfgs = dlwGMMIV(data..., bstart = bstart, opt = &quot;LBFGS&quot;, prodF = &quot;tl&quot;);
+
+julia&gt; println(&quot;
+Nelder Mead:\n
+Converge = $(res_nm.conv_msg)\n
+Objective Value = $(res_nm.other_results.crit)\n
+betas = $(res_nm.beta_dlw)
+\n
+LBFGS:\n
+Converge = $(res_lbfgs.conv_msg)\n
+Objective Value = $(res_lbfgs.other_results.crit)\n
+betas = $(res_lbfgs.beta_dlw)
+&quot;)
+
+Nelder Mead:
+
+Converge = false
+
+Objective Value = 79.28554768851731
+
+betas = (beta_x1 = 0.4453756727068648, beta_x2 = 1.2792439223699248, beta_x3 = -0.5006920829608563, beta_x1x2 = -0.21300433972699703, beta_x1x3 = 0.19994522566063533, beta_x2x3 = 0.0881743447457756, beta_x12 = -0.05639552788752075, beta_x22 = 0.08837596941633362, beta_x32 = -0.14734946617896608)
+
+
+LBFGS:
+
+Converge = false
+
+Objective Value = 0.0015682997593657287
+
+betas = (beta_x1 = 0.5759958463450249, beta_x2 = 13.674180582661819, beta_x3 = -9.992663746360366, beta_x1x2 = 4.593764648836302, beta_x1x3 = -4.5375950132058565, beta_x2x3 = -1.7111532397047498, beta_x12 = 0.11862766042073726, beta_x22 = -7.3662414691120714, beta_x32 = 7.057850742289901)</code></pre></article><nav class="docs-footer"><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.24 on <span class="colophon-date" title="Wednesday 1 March 2023 08:18">Wednesday 1 March 2023</span>. Using Julia version 1.6.7.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
