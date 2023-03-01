@@ -25,7 +25,6 @@ using LinearSolve
 
 include("simdata.jl")
 include("gmmiv.jl")
-include("testscript.jl")
 
 export dlwGMMIV
 
