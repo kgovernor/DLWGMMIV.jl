@@ -40,7 +40,7 @@ $$x_{i,t} = \alpha_{x_i} x_{i,t-1}$$
 
 $$\omega_t = \sum_{i=0}^{3}c_i\omega_{t-1}^i + \xi_t$$
 
-where $\alpha_{x_i} =$ $\sigma_{\alpha} \times$`indp_inputs_params[i]`, $\sigma_{\alpha} \sim \mathcal{N}(0, 1)$, and $c_i =$ `omega_params[i]`.
+where $\alpha_{x_i} =$ $\sigma_{\alpha} \times$`indp_inputs_params[i]`, $\sigma_{\alpha} \sim \mathcal{N}(1, 0.1)$, and $c_i =$ `omega_params[i]`.
 
 Let $X_{t}^*$ be the optimal solution to (1). Then,  
 

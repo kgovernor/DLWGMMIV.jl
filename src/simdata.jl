@@ -148,10 +148,7 @@ function sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["K"
     TFP_shock = ξ
 
     # Initialize independent inputs, e.g. k, capital
-    indp_inputs_lnmean = length(indp_inputs_lnmean) < num_indp_inputs ? [indp_inputs_lnmean; 5*ones(num_indp_inputs - length(indp_inputs_lnmean))] : indp_inputs_lnmean[begin:num_indp_inputs]
-    indp_inputs_lnvariance = length(indp_inputs_lnvariance) < num_indp_inputs ? [indp_inputs_lnvariance; 5*ones(num_indp_inputs - length(indp_inputs_lnvariance))] : indp_inputs_lnvariance[begin:num_indp_inputs]
-    indp_inputs_distributions = [Normal(indp_inputs_lnmean[i], indp_inputs_lnvariance[i]) for i in num_indp_inputs]
-    x_indp = [exp.(rand(indp_inputs_distributions[i], N)) for i in 1:num_indp_inputs]
+    x_indp = gen_indp_inputs(N, num_indp_inputs, indp_inputs_lnmean, indp_inputs_lnvariance)
     
     # Initialize dataframe
     firm_decision_df = DataFrame()
@@ -199,7 +196,7 @@ function sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["K"
 
         # Add periodic TFP shock for each firm
         TFP_shock = rand(TFP_shock_dist, N)
-        ω_it .= [ones(length(ω_it)) ω_it ω_it.^2 ω_it.^3]*omega_params .+ TFP_shock
+        ω_it .= [ω_it.^0 ω_it ω_it.^2 ω_it.^3]*omega_params .+ TFP_shock
         x_indp = [x_indp[i]*(indp_inputs_params[i]*rand(Normal(1,0.1))) for i in 1:num_indp_inputs]
     end
 
@@ -306,6 +303,16 @@ function gen_params(num_inputs, num_indp_inputs, input_names, prodF, prod_params
     println("")
     
     return prod_params, cost_params, omega_params, indp_inputs_params
+end
+
+function gen_indp_inputs(num_samples, num_indp_inputs, indp_inputs_lnmean, indp_inputs_lnvariance)
+    indp_inputs_lnmean = length(indp_inputs_lnmean) < num_indp_inputs ? [indp_inputs_lnmean; 5*ones(num_indp_inputs - length(indp_inputs_lnmean))] : indp_inputs_lnmean[begin:num_indp_inputs]
+    indp_inputs_lnvariance = length(indp_inputs_lnvariance) < num_indp_inputs ? [indp_inputs_lnvariance; ones(num_indp_inputs - length(indp_inputs_lnvariance))] : indp_inputs_lnvariance[begin:num_indp_inputs]
+    indp_inputs_distributions = MvLogNormal(indp_inputs_lnmean, diagm(indp_inputs_lnvariance))
+    X_indp = rand(indp_inputs_distributions, num_samples)
+    x_indp = [X_indp[i,:] for i in 1:num_indp_inputs]
+
+    return x_indp
 end
 
 function gen_firm_decision(model, TC_func, input_names)
