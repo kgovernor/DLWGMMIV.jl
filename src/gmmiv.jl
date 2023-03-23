@@ -71,7 +71,7 @@ Objective Value = 3.1089429872638027e-15
 betas = (beta_x1 = 0.11394854106849515, beta_x2 = 1.9222327345314836, beta_x1x2 = -0.5175358152780514, beta_x12 = -0.04266689698177511, beta_x22 = 0.00703394572086843)
 ```
 """
-function dlwGMMIV(year, plantid, Q, inputs...; num_indp_inputs = 1, bstart = [], prodF="CD", opt="nm", δ_nm = 0.1, max_iters = 500)
+function dlwGMMIV(year, plantid, Q, inputs...; num_indp_inputs = 1, bstart = [], prodF="CD", opt="nm", δ_nm = 0.1, max_iters = 500, use_constant = "")
     prodF_options = ["CD", "tl"]
     optimization_options = ["nm", "LBFGS"]
     if (prodF ∉ prodF_options) || (opt ∉ optimization_options) 
@@ -83,12 +83,12 @@ function dlwGMMIV(year, plantid, Q, inputs...; num_indp_inputs = 1, bstart = [],
     inputs = collect(inputs)
 
     df = DataConfig(year, plantid, Q, inputs...)
-    X_str, X, X_lag, Z = gen_inputset(df, num_indp_inputs, length(inputs), prodF)
+    X_str, X, X_lag, Z = gen_inputset(df, num_indp_inputs, length(inputs), prodF, use_constant)
     
-    crit(betas) = GMM_DLW2(betas, df.phi, df.phi_lag, X, X_lag, Z)
+    crit(betas) = GMM_DLW2(betas, df.phi, df.phi_lag, X, X_lag, Z, use_constant)
 
     # Initialize local optimization model
-    bsize = prodF == "tl" ? length(inputs)*2 + binomial(length(inputs),2) : length(inputs)
+    bsize = length(X_str)
     bstart = isempty(bstart) ? zeros(bsize) : length(bstart) < bsize ? [bstart; zeros(bsize - length(bstart))] : bstart[begin:bsize]
     
     opt_parameters = Optim.Options(iterations = max_iters)
@@ -107,7 +107,7 @@ function dlwGMMIV(year, plantid, Q, inputs...; num_indp_inputs = 1, bstart = [],
     valstart = crit(bstart)
     valend = crit(beta_values)
 
-    other_results = GMM_DLW2(beta_values, df.phi, df.phi_lag, X, X_lag, Z, all = true)
+    other_results = GMM_DLW2(beta_values, df.phi, df.phi_lag, X, X_lag, Z, use_constant, all = true)
 
     return ((conv_msg = conv_msg, valstart = valstart, valend = valend, beta_dlw = beta_dlw, other_results = other_results))
 end
@@ -120,11 +120,14 @@ end
 
 ### Objective Function ###
 # GMM IV - objective function
-function GMM_DLW2(betas, PHI, PHI_LAG, X, X_lag, Z; all=false)
+function GMM_DLW2(betas, PHI, PHI_LAG, X, X_lag, Z, use_constant; all=false)
     OMEGA = PHI - X*betas
     OMEGA_lag = PHI_LAG - X_lag*betas
     #OMEGA_lag_pol = [ones(length(OMEGA_lag)) OMEGA_lag]# OMEGA_lag.^2 OMEGA_lag.^3] # To consider adding!
     OMEGA_lag_pol = OMEGA_lag
+    if use_constant in ["omega", "notZ", "all"]
+        OMEGA_lag_pol = [ones(length(OMEGA_lag)) OMEGA_lag_pol]
+    end
     OMEGA_lag_polsq = OMEGA_lag_pol'OMEGA_lag_pol
     
     #g_b = qr(OMEGA_lag_polsq) \ OMEGA_lag_pol'OMEGA # If above is added
@@ -143,17 +146,29 @@ end
 
 ### Production Function Inputs ###
 # Generate input set for GMM IV
-function gen_inputset(df, num_indp_inputs, num_inputs, prodF)
+function gen_inputset(df, num_indp_inputs, num_inputs, prodF, use_constant)
     X_str = ["x"*string(i) for i in 1:num_inputs]
     X = Matrix(df[:, X_str.*"1"])
     X_lag = Matrix(df[:, X_str.*"_lag"])
     Z = Matrix(df[:, [X_str[begin:num_indp_inputs].*"1"; X_str[(num_indp_inputs+1):end].*"_lag"]])
 
-    inputset = (X_str, X, X_lag, Z) # input set for Cobb Douglas production function estimation
-
     if prodF == "tl"
-        inputset = add_inputset_tl(df, num_indp_inputs, inputset...) # input set for translog production function estimation
+        X_str, X, X_lag, Z = add_inputset_tl(df, num_indp_inputs, X_str, X, X_lag, Z) # input set for translog production function estimation
     end
+
+    if !isempty(use_constant)
+        constant = ones(size(X,1))
+        if use_constant in ["X", "notZ", "all"]
+            X_str = ["constant"; X_str]
+            X = [constant X]
+            X_lag = [constant X_lag]
+        end
+        if use_constant in ["Z", "all"]
+            Z = [constant Z]
+        end
+    end
+
+    inputset = (X_str, X, X_lag, Z) # input set for Cobb Douglas production function estimation
 
     return inputset
 end

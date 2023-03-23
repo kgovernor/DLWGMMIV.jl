@@ -12,7 +12,7 @@ function DataConfig(year, plantid, Q, input1, input2, inputs...)
     df[!, :phi] = q  
     df[!, :epsilon] = df.q .- df.phi
 
-    sort!(df, [:plantid, :year])
+    sort!(df, [:year, :plantid])
     gdf = groupby(df, :plantid)
 
     transform!(gdf, :phi => (x -> lag(x)) => :phi_lag)
@@ -36,7 +36,7 @@ function DataConfig(year, plantid, Q, input1, input2, inputs...)
     df[!, :constant] = ones(length(df.q))
 
     df = df[completecases(df), :]
-    sort!(df, [:plantid, :year])
+    sort!(df, [:year, :plantid])
     
     return df
 end
