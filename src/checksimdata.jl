@@ -24,17 +24,17 @@ function sim_data_validity_check(df, params, funcs, input_params; use_FDiff = fa
     println("\n  First order derivative at optimal L is approximately zero: ", all(foc_pass))
     if !all(foc_pass)
         println("   Simmed data does not pass first order conditions!")
-        for i in findall(.!foc_pass)
-            println("  foc failed at observation $(i): $(foc[i])")
-        end
+        # for i in findall(.!foc_pass)
+        #     println("  foc failed at observation $(i): $(foc[i])")
+        # end
     end
   
     println("\n  Second order derivative at optimal L check: ", all(soc_pass)) 
     if !all(soc_pass)
         println("   Simmed data does not pass second order conditions!")
-        for i in findall(.!soc_pass)
-            println("  soc failed at observation $(i): $(soc[i])")
-        end    
+        # for i in findall(.!soc_pass)
+        #     println("  soc failed at observation $(i): $(soc[i])")
+        # end    
     end
     
     return (foc_pass = foc_pass, soc_pass = soc_pass)

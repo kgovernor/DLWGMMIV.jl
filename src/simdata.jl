@@ -119,11 +119,11 @@ Row │ time   firm   XI         k          l          m           Y          S 
                                                                                                                      11 columns and 215 rows omitted                                                                                                                      
 ```
 """
-function sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["K", "L"], prod_params = [0.1, 0.25], cost_params = [0, 0.15], omega_params = [0, 0.8, 0, 0], indp_inputs_params = [1], σ_ω = 1, indp_inputs_lnmean = [5], indp_inputs_lnvariance = [1], seed = -1, X_start = 1000, prodF = "CD", costF = "ce")
+function sim_data(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["K", "L"], prod_params = [0.1, 0.25], cost_params = [0, 0.15], omega_params = [0, 0.8, 0, 0], indp_inputs_params = [1], σ_ω = 1, indp_inputs_lnmean = [0], indp_inputs_lnvariance = [1], seed = -1, X_start = 1000, prodF = "CD", costF = "ce", rand_indp = true, opt_error = 0.0)
     println("\n\nSim Data for $(num_inputs) inputs, $(prodF)")
 
     if prodF == "CD"
-        return sim_data_CD(N, T, num_inputs = num_inputs, num_indp_inputs = num_indp_inputs,  input_names = input_names, prod_params = prod_params, cost_params = cost_params, omega_params = omega_params, indp_inputs_params = indp_inputs_params, σ_ω = σ_ω, indp_inputs_lnmean = indp_inputs_lnmean, indp_inputs_lnvariance = indp_inputs_lnvariance, seed = seed)
+        return sim_data_CD(N, T, num_inputs = num_inputs, num_indp_inputs = num_indp_inputs,  input_names = input_names, prod_params = prod_params, cost_params = cost_params, omega_params = omega_params, indp_inputs_params = indp_inputs_params, σ_ω = σ_ω, indp_inputs_lnmean = indp_inputs_lnmean, indp_inputs_lnvariance = indp_inputs_lnvariance, seed = seed, rand_indp = rand_indp, opt_error = opt_error)
     end
 
     if seed >= 0

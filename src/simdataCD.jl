@@ -19,7 +19,7 @@ end
 
 
 # This is the function for simulating Cobb Douglas data. (Should be faster than using Ipopt)
-function sim_data_CD(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["K", "L"], prod_params = [0.1, 0.25], cost_params = [0, 0.15], omega_params = [0, 0.8, 0, 0], indp_inputs_params = [1], σ_ω = 1, indp_inputs_lnmean = [5], indp_inputs_lnvariance = [1], seed = -1)  
+function sim_data_CD(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = ["K", "L"], prod_params = [0.1, 0.25], cost_params = [0, 0.15], omega_params = [0, 0.8, 0, 0], indp_inputs_params = [1], σ_ω = 1, indp_inputs_lnmean = [0], indp_inputs_lnvariance = [1], seed = -1, rand_indp = true, opt_error = 0.0)  
     prodF, costF = "CD", "ce"
 
     if seed >= 0
@@ -59,16 +59,21 @@ function sim_data_CD(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = [
         omega = [omega; ω_it]
         # Update independent inputs
         indp = [X[i][(end-N)+1:end] for i in 1:num_indp_inputs]
-        X = [[X[i]; indp[i]*(indp_inputs_params[i]*rand(Normal(1,0.1)))] for i in 1:num_indp_inputs]       
+        if rand_indp
+            X =  [[X[i]; rand(LogNormal(indp_inputs_lnmean[i], indp_inputs_lnvariance[i]), N)] for i in 1:num_indp_inputs]
+        else
+            X = [[X[i]; indp[i].*(rand(LogNormal(indp_inputs_params[i], 0.2),N))] for i in 1:num_indp_inputs] 
+        end      
         # Save ξ (TFP shock)
         ξ = [ξ; TFP_shock]
     end
     
     # Initialize solve function
     solve(ω, indp_inputs...) = solve_CD(num_inputs, num_indp_inputs, prod_params, cost_params, ω, indp_inputs...)
+    
     sol = mapreduce(permutedims, vcat, solve.(omega, X[1:num_indp_inputs]...))
     for i in 1:(num_inputs-num_indp_inputs)
-        push!(X, sol[:,i])
+        push!(X, sol[:,i] .* rand(LogNormal(0, opt_error), length(sol[:,i])))
     end
 
     X_opt = (; zip(Symbol.(input_names), X)...)

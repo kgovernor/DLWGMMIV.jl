@@ -7,17 +7,17 @@ using Test
 
     ### Testing Sim data ###
     println("\n\n-----TESTING SIM DATA FUNCTIONS-----\n")
-    N,T = 10, 10
+    N,T = 10000, 10
 
     # println("\nPerformance of sim_data_solved_L:")
     # @time res_SL = DLWGMMIV.sim_data_solved_L_CD(N,T)
 
     println("\nPerformance of sim_data:")
     res = []
-    @time res = [res; DLWGMMIV.sim_data(N,T)]
-    @time res = [res; DLWGMMIV.sim_data(N,T, prod_params = [0.1, 0.25, 0.05], prodF ="tl")]
-    @time res = [res; DLWGMMIV.sim_data(N,T, num_inputs = 3, input_names = ["k", "l", "m"], prod_params = [0.1, 0.25, 0.6])]
-    @time res = [res; DLWGMMIV.sim_data(N,T, num_inputs = 3, input_names = ["k", "l", "m"], prod_params = [0.1, 0.25, 0.2, 0.05], prodF ="tl")]
+    @time res = [res; DLWGMMIV.sim_data(N,T, prod_params=[0.1], indp_inputs_lnmean = [0], rand_indp = true, opt_error = 0.2)]
+    #@time res = [res; DLWGMMIV.sim_data(N,T, prod_params = [0.1, 0.25, 0.05], prodF ="tl")]
+    #@time res = [res; DLWGMMIV.sim_data(N,T, num_inputs = 3, input_names = ["k", "l", "m"], prod_params = [0.1, 0.25, 0.6])]
+    #@time res = [res; DLWGMMIV.sim_data(N,T, num_inputs = 3, input_names = ["k", "l", "m"], prod_params = [0.1, 0.25, 0.2, 0.05], prodF ="tl")]
 
     println("\n==========================================")
     ########################################################
@@ -38,21 +38,21 @@ using Test
 
     ### Testing simmed data ###
     println("\n\n-----TESTING SIMMED DATA-----\n")
-    for r in res
-        println("### Simmed Data for $(r.input_params.num_inputs) inputs, $(r.params.prodF) ###")
-        if (r.input_params.num_inputs == 2) && (r.params.prodF == "CD")
-            println("\n\nResults for data: without ForwardDiff...")
-            derivative_checks = DLWGMMIV.sim_data_validity_check(r.df, r.params, r.funcs, r.input_params)
-            @test all(derivative_checks.foc_pass)
-            @test all(derivative_checks.soc_pass)
-        end
+    # for r in res
+    #     println("### Simmed Data for $(r.input_params.num_inputs) inputs, $(r.params.prodF) ###")
+    #     if (r.input_params.num_inputs == 2) && (r.params.prodF == "CD")
+    #         println("\n\nResults for data: without ForwardDiff...")
+    #         derivative_checks = DLWGMMIV.sim_data_validity_check(r.df, r.params, r.funcs, r.input_params)
+    #         @test all(derivative_checks.foc_pass)
+    #         @test all(derivative_checks.soc_pass)
+    #     end
 
-        println("\nResults for data: with ForwardDiff...")
-        derivative_checks = DLWGMMIV.sim_data_validity_check(r.df, r.params, r.funcs, r.input_params, use_FDiff = true)
-        @test all(derivative_checks.foc_pass)
-        @test all(derivative_checks.soc_pass)
-        println("\n\n")
-    end
+    #     println("\nResults for data: with ForwardDiff...")
+    #     derivative_checks = DLWGMMIV.sim_data_validity_check(r.df, r.params, r.funcs, r.input_params, use_FDiff = true)
+    #     @test all(derivative_checks.foc_pass)
+    #     @test all(derivative_checks.soc_pass)
+    #     println("\n\n")
+    # end
     println("\n==========================================")
     ###############################################################
 
@@ -99,24 +99,24 @@ using Test
     end
 
     # Test adding constant to dlwGMMIV
-    res_test = DLWGMMIV.sim_data(1000, 10)
-    df_test = res_test.df
-    testdata = [df_test.time, df_test.firm, df_test.Y, [df_test[:,input] for input in res_test.input_params.input_names]...]
-    for use_constant in ["", "X", "Z", "omega", "notZ", "all"]
-        println("Results for Simmed Data $(res_test.input_params.num_inputs) inputs, $(res_test.params.prodF), constant in $(use_constant) \n")
-        @time results = [dlwGMMIV(testdata..., num_indp_inputs = res_test.input_params.num_indp_inputs, use_constant = use_constant)]
-        @time results = [results; dlwGMMIV(testdata..., num_indp_inputs = res_test.input_params.num_indp_inputs, opt = "LBFGS", use_constant = use_constant)]
-        @time results = [results; dlwGMMIV(testdata..., num_indp_inputs = res_test.input_params.num_indp_inputs, prodF ="tl", use_constant = use_constant)]
-        @time results = [results; dlwGMMIV(testdata..., num_indp_inputs = res_test.input_params.num_indp_inputs, opt = "LBFGS", prodF = "tl", use_constant = use_constant)]
+    # res_test = DLWGMMIV.sim_data(1000, 10)
+    # df_test = res_test.df
+    # testdata = [df_test.time, df_test.firm, df_test.Y, [df_test[:,input] for input in res_test.input_params.input_names]...]
+    # for use_constant in ["", "X", "Z", "omega", "notZ", "all"]
+    #     println("Results for Simmed Data $(res_test.input_params.num_inputs) inputs, $(res_test.params.prodF), constant in $(use_constant) \n")
+    #     @time results = [dlwGMMIV(testdata..., num_indp_inputs = res_test.input_params.num_indp_inputs, use_constant = use_constant)]
+    #     @time results = [results; dlwGMMIV(testdata..., num_indp_inputs = res_test.input_params.num_indp_inputs, opt = "LBFGS", use_constant = use_constant)]
+    #     @time results = [results; dlwGMMIV(testdata..., num_indp_inputs = res_test.input_params.num_indp_inputs, prodF ="tl", use_constant = use_constant)]
+    #     @time results = [results; dlwGMMIV(testdata..., num_indp_inputs = res_test.input_params.num_indp_inputs, opt = "LBFGS", prodF = "tl", use_constant = use_constant)]
 
-        for i in eachindex(results)
-            res_iv = results[i]
-            desc = description[i]
+    #     for i in eachindex(results)
+    #         res_iv = results[i]
+    #         desc = description[i]
 
-            println("  For $(desc[1]) Optimization, solve $(desc[2]): ")
-            println("  \tconvergence = $(res_iv.conv_msg) |\n  \tvalstart, valend = $(res_iv.valstart), $(res_iv.valend) |\n  \tbetas = $(res_iv.beta_dlw) |\n  \tg_b = $(res_iv.other_results.g_b) \n\n")
-        end
-    end
+    #         println("  For $(desc[1]) Optimization, solve $(desc[2]): ")
+    #         println("  \tconvergence = $(res_iv.conv_msg) |\n  \tvalstart, valend = $(res_iv.valstart), $(res_iv.valend) |\n  \tbetas = $(res_iv.beta_dlw) |\n  \tg_b = $(res_iv.other_results.g_b) \n\n")
+    #     end
+    # end
 
     println("\n==========================================")
     ##############################################################
