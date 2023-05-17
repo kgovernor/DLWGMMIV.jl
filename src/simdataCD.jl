@@ -68,14 +68,25 @@ function sim_data_CD(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = [
         ξ = [ξ; TFP_shock]
     end
     
-    # Initialize solve function
-    solve(ω, indp_inputs...) = solve_CD(num_inputs, num_indp_inputs, prod_params, cost_params, ω, indp_inputs...)
+    # # Initialize solve function
+    # solve(ω, indp_inputs...) = solve_CD(num_inputs, num_indp_inputs, prod_params, cost_params, ω, indp_inputs...)
     
-    sol = mapreduce(permutedims, vcat, solve.(omega, X[1:num_indp_inputs]...))
-    for i in 1:(num_inputs-num_indp_inputs)
-        push!(X, sol[:,i] .* rand(LogNormal(0, opt_error), length(sol[:,i])))
+    # sol = mapreduce(permutedims, vcat, solve.(omega, X[1:num_indp_inputs]...))
+    # for i in 1:(num_inputs-num_indp_inputs)
+    #     push!(X, sol[:,i] .* rand(LogNormal(0, opt_error), length(sol[:,i])))
+    # end
+
+    # Solve for dependent inputs
+    Abar = prod(X[i].^prod_params[i] for i in 1:num_indp_inputs) .* prod((prod_params[j]/(1+cost_params[j]))^(prod_params[j]/(1+cost_params[j])) for j in (num_indp_inputs+1):num_inputs)
+    αbar = sum(prod_params[j]/(1+cost_params[j]) for j in (num_indp_inputs+1):num_inputs)
+    Ystar = (exp.(omega) .* Abar) .^ (1/(1-αbar))
+    Xstar(αi, γi) = (αi .* Ystar ./ (1+γi)) .^ (1/(1+γi))
+    for i in (num_indp_inputs+1):num_inputs
+        push!(X, Xstar(prod_params[i],cost_params[i]))
     end
 
+
+    # Save results
     X_opt = (; zip(Symbol.(input_names), X)...)
     TC_opt = TC_func.(X...)
     S_opt = S_func.(X...)
