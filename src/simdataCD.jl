@@ -84,7 +84,8 @@ function sim_data_CD(N, T; num_inputs = 2, num_indp_inputs = 1,  input_names = [
     for i in (num_indp_inputs+1):num_inputs
         push!(X, Xstar(prod_params[i],cost_params[i]))
     end
-
+    # Add optimization error to labour
+    X[num_indp_inputs+1] =  X[num_indp_inputs+1] .* rand(LogNormal(0, opt_error), length(X[1]))
 
     # Save results
     X_opt = (; zip(Symbol.(input_names), X)...)
