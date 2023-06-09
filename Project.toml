@@ -25,6 +25,7 @@ StatsModels = "3eaba693-59b7-5ba5-a881-562e759f1c8d"
 Zygote = "e88e6eb3-aa80-5325-afca-941959d7151f"
 
 [compat]
+ShiftedArrays = "2"
 julia = "1"
 
 [extras]
