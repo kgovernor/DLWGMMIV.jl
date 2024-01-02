@@ -2,6 +2,13 @@
 *.jl.cov
 *.jl.mem
 /Manifest.toml
-/packages/
+/deps/
 testscript.jl
 testtestscript.jl
+nn.jl
+nn2.jl
+simdataACF.jl
+gnr.jl
+/src/intervaloptsearch/
+/archive/
+/test/

@@ -2,72 +2,50 @@
 # Data Configuration #
 ######################
 
-# This function configures the data for GMMIV method. Input 1 is treated as the dynamic input. 
-function DataConfig(year, plantid, Q, input1, input2, inputs...)
-    q, inputs = log.(Q), [log.(inp) for inp in [[input1, input2]; collect(inputs)]]
-    components = poly_approx_vars(inputs...)
-    df = DataFrame( ; year = year, plantid=plantid, q = q, components...)
-
-    # TO DO - Let phi be derived from polynomial regression of degree 3.
-    df[!, :phi] = q  
-    df[!, :epsilon] = df.q .- df.phi
-
-    sort!(df, [:year, :plantid])
-    gdf = groupby(df, :plantid)
-
-    transform!(gdf, :phi => (x -> lag(x)) => :phi_lag)
-
-    vars = ["x"*string(i) for i in eachindex(inputs)]
-    for var in vars
-        transform!(gdf, Symbol(var*"1") => (x -> lag(x)) => Symbol(var*"_lag"))
-        transform!(gdf, Symbol(var*"2") => (x -> lag(x)) => Symbol(var*"_lag2"))
-    end
-    
-    for var in combinations(vars, 2)
-        df[!, var[1]*"_lag"*var[2]*"_lag"] = df[:, var[1]*"_lag"] .* df[:, var[2]*"_lag"]
+function lag_panel(df::DataFrame, by::Vector{String}, vars::Vector{String} = Vector{String}(undef, 0))
+    if isempty(vars)
+        vars = names(df, Not(by))
     end
 
-    for var in vars[2:length(vars)]
-        df[!, vars[1]*var*"_lag"] = df[:, vars[1]*"1"] .* df[:, var*"_lag"]
-    end
+    sort!(df, by)
+    gdf = groupby(df, by[2])
 
-    df[!, :lq_c] = df.q .- df.epsilon
-    df[!, :qlvl_c] = exp.(df.lq_c)
-    df[!, :constant] = ones(length(df.q))
+    df = transform(gdf, [x => ShiftedArrays.lag for x in vars])
 
-    df = df[completecases(df), :]
-    sort!(df, [:year, :plantid])
-    
     return df
 end
 
-function poly_approx_vars(input1, input2, inputs...)
-    M, N = 3, 3 # degree of polynomial    
-    inputs = [[input1, input2]; collect(inputs)] # Production function inputs
-    X_str = ["x"*string(i) for i in eachindex(inputs)] # labels for inputs
-    X = Dict(zip(X_str,inputs))
-    X_cmb = combinations(X_str, 2) # creates set of interactions between inputs.
-
-    components = Dict()
-    # Create polynomial terms needed for configuring data for GMMIV
-    for i in 1:M
-        for x in X_str
-            components[x*string(i)] = X[x] .^ (i)
-        end
-
-
-        for j in 1:N
-            for x_cmb in X_cmb
-                components[join(x_cmb,string(i))*string(j)] = X[x_cmb[1]] .^ (i) .* X[x_cmb[2]] .^ (j)
+function poly_vars(vars::Vector{String}, deg::Int; exponents::Vector{Vector{Int}} = Vector{Vector{Int}}(undef, 0))
+    poly_vars = Vector{String}(undef, 0)
+    
+    if isempty(exponents)
+        if deg > 1
+            for d in 2:deg
+                append!(exponents, collect(multiexponents(length(vars), d)))
             end
         end
+    end
+    
+    for e in exponents
+        sel = e .> 0
+        e = replace(e, 1=>"")
+        push!(poly_vars,  join(vars[sel] .* string.(e[sel])))
+    end
 
-        if length(X_str) > 2
-            components[join(X_str,string(i))*string(i)] = prod.(eachrow(hcat(inputs...).^i))
+    return (v = poly_vars, e = exponents)
+end
+
+function poly_approx_vars(df::DataFrame, deg::Int, vars::Vector{String} = Vector{String}(undef, 0); exponents::Vector{Vector{Int}} = Vector{Vector{Int}}(undef, 0))
+    vars = isempty(vars) ? names(df) : vars
+    pv, exponents = poly_vars(vars, deg, exponents = exponents)
+
+    for e in exponents
+        newvar = popfirst!(pv)
+        if !(newvar in names(df))
+            df = transform(df, [vars[i] .=> (x -> x.^e[i]) for i in eachindex(vars)] )
+            df = select(df, names(df, Not(r"function"))..., names(df, r"function")  => ByRow(*) => newvar)
         end
     end
 
-    components = Dict(Symbol(k) => v for (k, v) in components)
-
-    return components
+    return df
 end

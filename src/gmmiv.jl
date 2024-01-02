@@ -1,4 +1,4 @@
-include("config.jl")
+
 
 ################
 # Main methods #
@@ -71,124 +71,296 @@ Objective Value = 3.1089429872638027e-15
 betas = (beta_x1 = 0.11394854106849515, beta_x2 = 1.9222327345314836, beta_x1x2 = -0.5175358152780514, beta_x12 = -0.04266689698177511, beta_x22 = 0.00703394572086843)
 ```
 """
-function dlwGMMIV(year, plantid, Q, inputs...; num_indp_inputs = 1, bstart = [], prodF="CD", opt="nm", δ_nm = 0.1, max_iters = 500, use_constant = "")
-    prodF_options = ["CD", "tl"]
-    optimization_options = ["nm", "LBFGS"]
-    if (prodF ∉ prodF_options) || (opt ∉ optimization_options) 
-        # TODO - write error function!!! 
-        println("error!")
-        return
-    end
+function dlwGMMIV(
+    df::DataFrame, by::Vector{String}, y::Vector{String}, x_stage1::Vector{String}, x_stage2::Vector{String}, z::Vector{String};  
+    betas = Betas(),
+    model = ACF_model(),
+    skip_stage1 = false,
+    bstart = 0,
+    globalsolve = false,
+    local_optimizer = BFGS(),
+    global_optimizer = BBO_adaptive_de_rand_1_bin_radiuslimited(),
+    maxtime = 1000.0,
+    maxiters = 20000,
+    lb = 0,
+    ub = 1,
+    df_out = false
+    )
 
-    inputs = collect(inputs)
+    vars = (
+        by = by,
+        yvar = y[1],
+        xvars1 = x_stage1,
+        xvars2 = x_stage2,
+        zvars = z,
+        phivar = "phi", 
+        epsvar = "epsilon"
+    )
 
-    df = DataConfig(year, plantid, Q, inputs...)
-    X_str, X, X_lag, Z = gen_inputset(df, num_indp_inputs, length(inputs), prodF, use_constant)
-    
-    crit(betas) = GMM_DLW2(betas, df.phi, df.phi_lag, X, X_lag, Z, use_constant)
+    opt = (
+        bstart = bstart, 
+        globalsolve = globalsolve,
+        local_optimizer = local_optimizer,
+        global_optimizer = global_optimizer,
+        maxtime = maxtime,
+        maxiters = maxiters,
+        lb = lb,
+        ub = ub    
+    )
 
-    # Initialize local optimization model
-    bsize = length(X_str)
-    bstart = isempty(bstart) ? zeros(bsize) : length(bstart) < bsize ? [bstart; zeros(bsize - length(bstart))] : bstart[begin:bsize]
-    
-    opt_parameters = Optim.Options(iterations = max_iters)
-    nm_parameters = Optim.FixedParameters(δ = δ_nm)
-          
-    if opt == "LBFGS"
-        p = Optim.optimize(crit, bstart, LBFGS(), opt_parameters; autodiff = :forward)
-    elseif opt == "nm"   
-        p = Optim.optimize(crit, bstart, NelderMead(parameters  = nm_parameters), opt_parameters)
-    end
-    
-    conv_msg = Optim.converged(p)
-    beta_names = Symbol.("beta_".*X_str)
-    beta_values = Optim.minimizer(p)
-    beta_dlw = (; zip(beta_names, beta_values)...)
-    valstart = crit(bstart)
-    valend = crit(beta_values)
+    df = deepcopy(df)
+        
+    s1_res = stage1(df, vars, model, skip_stage1)
+    s2_res = stage2(df, vars, betas, model, opt)
 
-    other_results = GMM_DLW2(beta_values, df.phi, df.phi_lag, X, X_lag, Z, use_constant, all = true)
+    res = (s1 = s1_res, s2 = s2_res)
 
-    return ((conv_msg = conv_msg, valstart = valstart, valend = valend, beta_dlw = beta_dlw, other_results = other_results))
+    output = df_out ? (r = res, df = df) : (r = res)
+    return output
 end
 
+function dlwGMMIV(time::Vector, id::Vector, Y::Vector, X_stage1::AbstractMatrix, X_stage2::AbstractMatrix, Z::AbstractMatrix;
+    betas = Betas(),
+    model = ACF_model(),
+    skip_stage1 = false,
+    bstart = 0,
+    globalsolve = false,
+    local_optimizer = BFGS(),
+    global_optimizer = BBO_adaptive_de_rand_1_bin_radiuslimited(),
+    maxtime = 1000.0,
+    maxiters = 20000,
+    lb = 0,
+    ub = 1,
+    df_out = false
+    ) 
+
+    vars = init_vars(size(X_stage1, 2), size(X_stage2, 2), size(Z, 2))
+    df = init_df(time, id, Y, X_stage1, X_stage2, Z, vars)
+
+    return dlwGMMIV(df, vars.by, vars.y, vars.xvars1, vars.xvars2, vars.z,  
+        betas = betas,
+        model = model,
+        skip_stage1 = skip_stage1,
+        bstart = bstart, 
+        globalsolve = globalsolve,
+        local_optimizer = local_optimizer,
+        global_optimizer = global_optimizer,
+        maxtime = maxtime,
+        maxiters = maxiters,
+        lb = lb,
+        ub = ub, 
+        df_out = df_out
+    )
+end
 
 ################################################################################################################################################
 #################
 # Other methods #
 #################
 
-### Objective Function ###
-# GMM IV - objective function
-function GMM_DLW2(betas, PHI, PHI_LAG, X, X_lag, Z, use_constant; all=false)
-    OMEGA = PHI - X*betas
-    OMEGA_lag = PHI_LAG - X_lag*betas
-    #OMEGA_lag_pol = [ones(length(OMEGA_lag)) OMEGA_lag]# OMEGA_lag.^2 OMEGA_lag.^3] # To consider adding!
-    OMEGA_lag_pol = OMEGA_lag
-    if use_constant in ["omega", "notZ", "all"]
-        OMEGA_lag_pol = [ones(length(OMEGA_lag)) OMEGA_lag_pol]
-    end
-    OMEGA_lag_polsq = OMEGA_lag_pol'OMEGA_lag_pol
+function stage1(df, vars, model, skip_stage1)
+    res = missing
+
+    df[!, vars.phivar] = df[!, vars.yvar]
     
-    #g_b = qr(OMEGA_lag_polsq) \ OMEGA_lag_pol'OMEGA # If above is added
-    g_b = OMEGA_lag_polsq \ OMEGA_lag_pol'OMEGA
-    #g_b[1] = 0 # May not be needed depending on if constant is added or not. Issues with constant.
-    XI = OMEGA .- OMEGA_lag_pol*g_b
-    
-    crit = transpose(Z'XI)*(Z'XI)
+    if model.method == :none || skip_stage1
+        println("\nSkipping Stage 1. Returning output as phi.\n")
+    else 
+        y = df[!, vars.yvar]
+        X = df[!, vars.xvars1]
 
-    if all
-        return (crit = crit, OMEGA = OMEGA, XI = XI, g_b = g_b)
-    end
-    
-    return crit
-end
-
-### Production Function Inputs ###
-# Generate input set for GMM IV
-function gen_inputset(df, num_indp_inputs, num_inputs, prodF, use_constant)
-    X_str = ["x"*string(i) for i in 1:num_inputs]
-    X = Matrix(df[:, X_str.*"1"])
-    X_lag = Matrix(df[:, X_str.*"_lag"])
-    Z = Matrix(df[:, [X_str[begin:num_indp_inputs].*"1"; X_str[(num_indp_inputs+1):end].*"_lag"]])
-
-    if prodF == "tl"
-        X_str, X, X_lag, Z = add_inputset_tl(df, num_indp_inputs, X_str, X, X_lag, Z) # input set for translog production function estimation
-    end
-
-    if !isempty(use_constant)
-        constant = ones(size(X,1))
-        if use_constant in ["X", "notZ", "all"]
-            X_str = ["constant"; X_str]
-            X = [constant X]
-            X_lag = [constant X_lag]
-        end
-        if use_constant in ["Z", "all"]
-            Z = [constant Z]
+        if model.method in [:acf]
+            println("\nStage 1 polynomial regression approximation. Returning output as phi.\n")
+            res = mv_polyreg(y, X, model.s1_deg)
+            df[!, vars.phivar] = predict(res)
+        else
+            throw(ArgumentError("$(model.method) is not a valid stage 1 estimation method."))
         end
     end
 
-    inputset = (X_str, X, X_lag, Z) # input set for Cobb Douglas production function estimation
+    df[!, vars.epsvar] = df[:, vars.yvar] - df.phi 
 
-    return inputset
+    return res
 end
 
-function add_inputset_tl(df, num_indp_inputs, X_str, X, X_lag, Z)
-    X_indp = X_str[1:num_indp_inputs]
-    X_comb = combinations(X_str, 2)
-    tl_Zinteractions = [length(X_indp ∩ x_comb) == 1 ? join(x_comb)*"_lag" : length(X_indp ∩ x_comb) == 2 ? join(x_comb) : join(x_comb, "_lag")*"_lag" for x_comb in X_comb]
+function stage2(df, vars, betas, model, opt)
+    B = init_betas(betas, "β_".*(vars.xvars2), opt.bstart, model.s2_deg)
+    nB = length(B)
+    g_B = model.g_B
+    ngB = length(g_B)
 
-    find_names = [[join(x_comb, "1")*"1" for x_comb in X_comb]; X_str.*"2"]
-    X = hcat(X, Matrix(df[:, find_names]))
-    find_names = [[join(x_comb, "_lag")*"_lag" for x_comb in X_comb]; X_str.*"_lag2"]
-    X_lag = hcat(X_lag, Matrix(df[:, find_names]))
-    find_names = [tl_Zinteractions; X_indp.*"2"; X_str[(num_indp_inputs+1):end].*"_lag2"]
-    Z = hcat(Z, Matrix(df[:, find_names]))  
+    for v in [vars.xvars2, vars.zvars]
+        df = poly_approx_vars(df, B.deg, v, exponents = B.e)
+    end    
 
-    X_str_temp = [[join(x_comb) for x_comb in X_comb]; X_str.*"2"]
-    X_str = [X_str; X_str_temp]
+    vars = merge(
+        vars,
+        (xvars2 = [vars.xvars2; poly_vars(vars.xvars2, B.deg, exponents = B.e).v],
+        zvars = [vars.zvars; poly_vars(vars.zvars, B.deg, exponents = B.e).v])
+    )
+    Z = Matrix(df[completecases(df), vars.zvars])
+    ZZ = Z * Z'
 
-    inputset_tl = (X_str, X, X_lag, Z)
+    prodest = prodest_method(model.method)
+    f(betas, gbetas; derivative = []) = prodest(betas, gbetas, df, vars, g_B, derivative = derivative)
+    gf(betas) = prodest(betas, df, vars, g_B, model.use_constant)
 
-    return inputset_tl
+    function solve_lower_level(betas)
+        if opt.global_optimizer == :IntervalOptimiser
+            betas = mid.(betas)
+        end
+        innergmm(gbetas) = sum(f(betas, gbetas).^2)
+        if model.gOLS
+            gbs = gf(betas) 
+            v = innergmm(gbs)
+        else
+            if model.use_constant
+                res = gmm(innergmm, ngB, lb = zeros(ngB) .- eps(), ub = ones(ngB))
+                gbs = sol.u
+            else
+                res = gmm((b) -> innergmm([0; b]), ngB-1, lb = zeros(ngB-1) .- eps(), ub = ones(ngB-1))
+                gbs = [0; sol.u]
+            end
+            @assert SciMLBase.successful_retcode(sol)
+            v = sol.objective
+        end
+        
+        return (v=v, gbs=gbs)
+    end
+    function _update_if_needed(cache::Cache, x)
+        if cache.β !== x
+            res = solve_lower_level(x)
+            cache.v, cache.g_β = res
+            cache.β = x
+        end
+        return
+    end    
+    function solveXI(cache::Cache, betas)
+        _update_if_needed(cache, betas)
+        XI = f(betas, cache.g_β)
+        v = (XI' * ZZ * XI) / (nrow(df)^2)
+        return v
+    end
+    cache = Cache([], [], [])
+
+    lb, ub = zeros(nB) .- eps(), ones(nB)
+    bstart = initial_values(B)
+
+    optf = OptimizationFunction((bs, p) -> solveXI(cache, bs), Optimization.AutoForwardDiff())
+    prob = OptimizationProblem(optf, bstart, lb = lb, ub = ub)
+
+    if opt.globalsolve
+        if opt.global_optimizer isa Optim.ParticleSwarm
+            sol = solve(prob, Optim.ParticleSwarm(lower = prob.lb, upper = prob.ub, n_particles = opt.global_optimizer.n_particles), maxiters = opt.maxiters, maxtime = opt.maxtime)
+        elseif opt.global_optimizer == :IntervalOptimiser
+            X = IntervalBox(0..1, nB)
+            zmin, xmin = minimise((B) -> solveXI(cache, [b for b in B]), X, tol = 1e-2)
+            println(xmin)
+            return (z = zmin, x = xmin)
+        else
+            sol = solve(prob, opt.global_optimizer, maxiters = opt.maxiters, maxtime = opt.maxtime)
+        end
+    else
+        sol = solve(prob, opt.local_optimizer, maxiters = opt.maxiters, maxtime = opt.maxtime)
+    end
+    # println(sol.original)
+
+    println(sol.u)
+    # println(sol.objective)
+
+    add_betas!(B, keys(B), sol.u)
+    innervstart, gbs = solve_lower_level(bstart)
+    start_betas!(g_B, keys(g_B), gbs)
+    innervend, gbs = solve_lower_level(sol.u)
+    add_betas!(g_B, keys(g_B), gbs)
+
+    res = GMM_results(
+        [B, g_B],
+        sol,
+        opt.globalsolve,
+        SciMLBase.successful_retcode(sol),
+        solveXI(cache, bstart),
+        sol.objective,
+        innervstart,
+        innervend
+    )
+    df = df[completecases(df), :]
+
+    return res
 end
+
+function gmm(f, num_betas = 0; start = zeros(num_betas), lb = repeat([-Inf], num_betas), ub = repeat([Inf], num_betas))
+
+    optf = OptimizationFunction((x, p) -> f(x), Optimization.AutoForwardDiff())
+    prob = OptimizationProblem(optf, start, lb = lb, ub = ub)
+
+    sol = solve(prob, BFGS(), maxiters = 20000, maxtime = 1000.0)
+
+    return sol
+end
+
+function mv_polyreg(y, X, deg)
+    if deg > -1
+        X = isa(X, Matrix) ? DataFrame(X, :auto) : X
+        df = poly_approx_vars(X, deg)
+        df[!, :y] = y
+        reg = lm(term(:y) ~ sum(term.(names(df, Not("y")))), df)
+    else
+        throw(DomainError("$deg, an invalid degree for polynomial regression. deg must be a non-negative integer"))
+    end
+
+    return reg
+end
+
+function init_betas(B, names, bstart, deg)
+    n = length(names)
+    B.deg = deg
+
+    if isempty(B)
+        B = Betas(names, bstart, deg = deg)
+    end
+
+    num_terms = n
+    for i in 2:B.deg
+        num_terms += factorial(i+n-1)/(factorial(n-1)*factorial(i))
+    end
+    length(B) == num_terms || throw(ArgumentError("bstart does not have enough values for $n terms of degree $(B.deg); expecting $num_terms beta values"))
+
+    return B
+end
+
+function init_df(time, id, Y, X_stage1, X_stage2, Z, vars)
+    df = DataFrame([time id Y], [vars.by; vars.y])
+    for i in eachindex(vars.xvars1)
+        df[!, vars.xvars1[i]] = X_stage1[:, i]
+    end
+    for i in eachindex(vars.xvars2)
+        df[!, vars.xvars2[i]] = X_stage2[:, i]
+    end
+    for i in eachindex(vars.zvars)
+        df[!, vars.zvars[i]] = Z[:, i]
+    end
+
+    return df
+end
+
+function init_vars(len_x_s1, len_x_s2, len_z)
+    vars = (
+        by = ["time", "id"],
+        yvar = "y",
+        xvars1 = genvarnames("xs", len_x_s1),
+        xvars2 = genxvars(len_x_s2),
+        zvars = genvarnames("z", len_z),
+    )
+    return vars
+end
+
+function prodest_method(model)
+    prod_est = Dict{Symbol, Function}(
+        :acf => ACF, 
+        # :gnr => GNR
+    )
+      
+    return prod_est[model]
+end
+
