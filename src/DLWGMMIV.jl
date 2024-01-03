@@ -30,6 +30,6 @@ include("gmmiv.jl")
 include("models/acf.jl")
 include("simdata/simdata.jl")
 
-export dlwGMMIV, simfirmdata, OptimizationOptimJL, OptimizationBBO, Parameters, ACF_model, Betas, lag_panel
+export dlwGMMIV, simfirmdata, OptimizationOptimJL, OptimizationBBO, Parameters, ACF_model, ACF, Betas, lag_panel
 
 end

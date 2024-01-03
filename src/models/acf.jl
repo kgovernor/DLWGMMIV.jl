@@ -1,6 +1,5 @@
 ### Objective Function ###
 # GMM IV - objective function
-# TODO rewrite function so that it is more easily acceptable to different forms of beta. Expand matrix algebra notation
 
 function ACF(β, g_β, df, vars, g_B, use_constant, closedsolve; derivative = [])
     ωstr, ξstr = "omega", "xi"

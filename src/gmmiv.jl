@@ -187,7 +187,7 @@ function stage2(df, vars, betas, model, opt)
     B = init_betas(betas, "β_".*(vars.xvars2), opt.bstart, model.s2_deg)
     nB = length(B)
     g_B = model.g_B
-    ngB = length(g_B)
+    interval_optimizer = (opt.global_optimizer == :IntervalOptimiser)
 
     for v in [vars.xvars2, vars.zvars]
         df = poly_approx_vars(df, B.deg, v, exponents = B.e)
@@ -199,62 +199,27 @@ function stage2(df, vars, betas, model, opt)
         zvars = [vars.zvars; poly_vars(vars.zvars, B.deg, exponents = B.e).v])
     )
     Z = Matrix(df[completecases(df), vars.zvars])
-    ZZ = Z * Z'
 
     prodest = prodest_method(model.method)
     f(betas, gbetas; derivative = []) = prodest(betas, gbetas, df, vars, g_B, derivative = derivative)
     gf(betas) = prodest(betas, df, vars, g_B, model.use_constant)
 
-    function solve_lower_level(betas)
-        if opt.global_optimizer == :IntervalOptimiser
-            betas = mid.(betas)
-        end
-        innergmm(gbetas) = sum(f(betas, gbetas).^2)
-        if model.gOLS
-            gbs = gf(betas) 
-            v = innergmm(gbs)
-        else
-            if model.use_constant
-                res = gmm(innergmm, ngB, lb = zeros(ngB) .- eps(), ub = ones(ngB))
-                gbs = sol.u
-            else
-                res = gmm((b) -> innergmm([0; b]), ngB-1, lb = zeros(ngB-1) .- eps(), ub = ones(ngB-1))
-                gbs = [0; sol.u]
-            end
-            @assert SciMLBase.successful_retcode(sol)
-            v = sol.objective
-        end
-        
-        return (v=v, gbs=gbs)
-    end
-    function _update_if_needed(cache::Cache, x)
-        if cache.β !== x
-            res = solve_lower_level(x)
-            cache.v, cache.g_β = res
-            cache.β = x
-        end
-        return
-    end    
-    function solveXI(cache::Cache, betas)
-        _update_if_needed(cache, betas)
-        XI = f(betas, cache.g_β)
-        v = (XI' * ZZ * XI) / (nrow(df)^2)
-        return v
-    end
+    _solve_lower_level(betas) = solve_lower_level(betas, f, gf, model, interval_optimizer)
+    _solveXI(cache, betas) = solveXI(cache, betas, f, gf, model, Z, interval_optimizer = interval_optimizer)
     cache = Cache([], [], [])
 
     lb, ub = zeros(nB) .- eps(), ones(nB)
     bstart = initial_values(B)
 
-    optf = OptimizationFunction((bs, p) -> solveXI(cache, bs), Optimization.AutoForwardDiff())
+    optf = OptimizationFunction((bs, p) -> _solveXI(cache, bs), Optimization.AutoForwardDiff())
     prob = OptimizationProblem(optf, bstart, lb = lb, ub = ub)
 
     if opt.globalsolve
         if opt.global_optimizer isa Optim.ParticleSwarm
             sol = solve(prob, Optim.ParticleSwarm(lower = prob.lb, upper = prob.ub, n_particles = opt.global_optimizer.n_particles), maxiters = opt.maxiters, maxtime = opt.maxtime)
-        elseif opt.global_optimizer == :IntervalOptimiser
+        elseif interval_optimizer
             X = IntervalBox(0..1, nB)
-            zmin, xmin = minimise((B) -> solveXI(cache, [b for b in B]), X, tol = 1e-2)
+            zmin, xmin = minimise((B) -> _solveXI(cache, [b for b in B]), X, tol = 1e-2)
             println(xmin)
             return (z = zmin, x = xmin)
         else
@@ -269,9 +234,9 @@ function stage2(df, vars, betas, model, opt)
     # println(sol.objective)
 
     add_betas!(B, keys(B), sol.u)
-    innervstart, gbs = solve_lower_level(bstart)
+    innervstart, gbs = _solve_lower_level(bstart)
     start_betas!(g_B, keys(g_B), gbs)
-    innervend, gbs = solve_lower_level(sol.u)
+    innervend, gbs = _solve_lower_level(sol.u)
     add_betas!(g_B, keys(g_B), gbs)
 
     res = GMM_results(
@@ -279,7 +244,7 @@ function stage2(df, vars, betas, model, opt)
         sol,
         opt.globalsolve,
         SciMLBase.successful_retcode(sol),
-        solveXI(cache, bstart),
+        _solveXI(cache, bstart),
         sol.objective,
         innervstart,
         innervend
@@ -364,3 +329,42 @@ function prodest_method(model)
     return prod_est[model]
 end
 
+function solve_lower_level(betas, f, gf, model, interval_optimizer)
+    if interval_optimizer #opt.global_optimizer == :IntervalOptimiser
+        betas = mid.(betas)
+    end
+    innergmm(gbetas) = sum(f(betas, gbetas).^2)
+    if model.gOLS
+        gbs = gf(betas) 
+        v = innergmm(gbs)
+    else
+        ngB = length(model.g_B)
+        if model.use_constant
+            res = gmm(innergmm, ngB, lb = zeros(ngB) .- eps(), ub = ones(ngB))
+            gbs = res.u
+        else
+            res = gmm((b) -> innergmm([0; b]), ngB-1, lb = zeros(ngB-1) .- eps(), ub = ones(ngB-1))
+            gbs = [0; res.u]
+        end
+        @assert SciMLBase.successful_retcode(res)
+        v = res.objective
+    end
+    
+    return (v=v, gbs=gbs)
+end
+
+function _update_if_needed(cache::Cache, x, f, gf, model, interval_optimizer)
+    if cache.β !== x
+        res = solve_lower_level(x, f, gf, model, interval_optimizer)
+        cache.v, cache.g_β = res
+        cache.β = x
+    end
+    return
+end
+
+function solveXI(cache::Cache, betas, f, gf, model, Z; interval_optimizer = false)
+    _update_if_needed(cache, betas, f, gf, model, interval_optimizer)
+    XI = f(betas, cache.g_β)
+    v = (XI' * Z * Z' * XI) / (size(Z, 1)^2)
+    return v
+end

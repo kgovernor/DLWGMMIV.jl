@@ -44,7 +44,7 @@ using Test
         bstart = [0.5, 0.5, 0, 0 ,0] ,
         model = ACF_model(use_constant = false),
         skip_stage1 = true,
-        globalsolve = true,
+        globalsolve = false,
         df_out = true
     );
 
