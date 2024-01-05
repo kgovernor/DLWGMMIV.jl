@@ -249,7 +249,8 @@ function stage2(df, vars, betas, model, opt)
         innervstart,
         innervend
     )
-    df = df[completecases(df), :]
+    # df[!, :omega] = df[:, vars.phivar] - df[:, vars.xvars2]*sol.u
+    # df[!, :xi] = f(sol.u, gbs)
 
     return res
 end
@@ -367,4 +368,19 @@ function solveXI(cache::Cache, betas, f, gf, model, Z; interval_optimizer = fals
     XI = f(betas, cache.g_β)
     v = (XI' * Z * Z' * XI) / (size(Z, 1)^2)
     return v
+end
+
+function genmodeldf(df, vars)
+    df = lag_panel(df, vars.by, [vars.phivar])
+
+    dfmodel = df[:, [vars.by; names(df, Regex(vars.phivar)); vars.xvars2]]
+    dfmodel = lag_panel(dfmodel, vars.by, vars.xvars2)
+    dfmodel = dfmodel[completecases(dfmodel), :]  
+    
+    constant = ones(nrow(dfmodel))
+    PHI, PHI_lag = dfmodel[:, vars.phivar], dfmodel[:, vars.phivar*"_lag"]
+    X = Matrix(dfmodel[:,vars.xvars2])
+    X_lag = Matrix(dfmodel[:, vars.xvars2.*"_lag"])
+    
+    return constant, PHI, PHI_lag, X, X_lag
 end

@@ -210,8 +210,8 @@ function Parameters(;
     cost_func::Symbol = :add_seperable,
 
     prod_coefs::BetaOrVec = [1/num_inputs for _ in 1:num_inputs],
-    cost_coefs::BetaOrVec = ones(num_inputs),
-    cost_exps::BetaOrVec = ones(num_inputs),
+    cost_coefs::BetaOrVec = [zeros(num_indp); ones(num_inputs-num_indp)],
+    cost_exps::BetaOrVec = ones(num_inputs) .+ 0.15,
 
     fixcost_coefs::Vector{<:Real} = [0, 1],
     fixcost_start::Real = 0,

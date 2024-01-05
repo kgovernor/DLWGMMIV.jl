@@ -50,7 +50,7 @@ function CobbDouglas(params::AbstractParameters, ω::RealOrVec, X::AbstractMatri
     c_exps = values(params.cost_params, p.exps)
 
     γi = 1 ./ (c_exps[deps])
-    αi = p_coefs[deps] ./ γi
+    αi = p_coefs[deps] .* γi
     A = exp.(ω)
     for i in eachindex(p_coefs)
         @. A *= exp(X_ω[:, i])^p_coefs[i]

@@ -7,8 +7,17 @@ using Test
 
     ### Testing Sim data ###
     println("\n\n-----TESTING SIM DATA FUNCTIONS-----\n")
-    N,T = 10000, 15
-    params = Parameters(omega_coefs =[0, 0.8])
+    N,T = 1000, 15
+    params = Parameters(
+		# omega_coefs = [0, 0.8],
+		# cost_exps = [1, 1.15]
+	)
+    model = ACF_model(
+		use_constant = false,
+		omega_deg = 3,
+		stage2_deg = 2,
+	)
+
     by = ["t", "n"]
     yvar = ["Y"]
     xvars1 = ["x1","x2"]
@@ -28,7 +37,7 @@ using Test
     # @time res_SL = DLWGMMIV.sim_data_solved_L_CD(N,T)
 
     println("\nPerformance of sim_data:")
-    df = simfirmdata(1000, 10, params = params, seed = 1)
+    df = simfirmdata(N, T, params = params, seed = 1)
     
     println("\n==========================================")
     ########################################################
@@ -42,7 +51,7 @@ using Test
         df, by, yvar, xvars1, xvars2, zvars;  
         betas = Betas(),
         bstart = [0.5, 0.5, 0, 0 ,0] ,
-        model = ACF_model(use_constant = false),
+        model = model,
         skip_stage1 = true,
         globalsolve = false,
         df_out = true
