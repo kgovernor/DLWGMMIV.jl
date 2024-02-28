@@ -13,15 +13,18 @@ mutable struct Betas{B<:AbstractDict{String, Vector{Float64}}} <: AbstractBetas
     e::Vector{Vector{Int}}
 end
 
-struct GMM_results{T1, T2} <: AbstractResults
-    beta_dlw::T1
-    sol::T2
-    globalsolve::Bool
-    successful::Bool
-    vstart::Float64 
-    vend::Float64 
-    vstart_inner::Float64 
-    vend_inner::Float64
+struct GMM_results <: AbstractResults #{T1, T2}
+    betas::Vector{<:Real}
+    gbetas::Vector{<:Real}
+    omega::Vector{<:Real}
+    xi::Vector{<:Real}
+    # B::T1
+    # sol::T2
+    # successful::Bool
+    # vstart::Real 
+    v::Real 
+    # vstart_inner::Real 
+    # vend_inner::Real
 end
 
 struct GMM_model{B <: AbstractBetas} <: AbstractGMMIVModel
@@ -77,10 +80,6 @@ mutable struct Cache <: AbstractResults
     g_β::Any
 end
 
-function GMM_results(beta_dlw, sol, globalsolve, successful, vstart, vend, vstart_inner, vend_inner)
-    return GMM_results(beta_dlw, sol, globalsolve, successful, vstart, vend, vstart_inner, vend_inner)
-end
-
 function GMM_model(
     method = :acf,
     stage1_deg = 3,
@@ -111,10 +110,6 @@ function VectorVectorFloat(x::RealOrVecReal, len::Int = 1)
         end
     end
     return V
-end
-
-function Betas(b::AbstractDict, deg::Int, e::Vector)
-    return Betas(b, deg, e)
 end
 
 function Betas(vars::Int = 0, initialvalues::RealOrVecReal = 0; deg::Int = 1, constant::Bool = false, init::Bool = true)
@@ -199,9 +194,6 @@ function ParamsIndex(
     return ParamsIndex(coefs, exps, start, sub, deg_homog)
 end
 
-function SetParameters(n, n_indp, prod_params, cost_params, omega_params, indp_params)
-    return SetParameters(n, n_indp, prod_params, cost_params, omega_params, indp_params)
-end
 function Parameters(;
     num_inputs::Int = 2,
     num_indp::Int = 1,

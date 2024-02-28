@@ -142,7 +142,7 @@ function solve_firm_decision(df::DataFrame, params::AbstractParameters, closed_s
         df[!, xvars[i]] = X[:, i]
     end
 
-    df[!, "Y"] = F_prod(prod, nrow(df))(df.OMEGA, X_ω, X) .+ rand(prod.err, nrow(df))
+    df[!, "Y"] = F_prod(prod, nrow(df))(df.OMEGA, X_ω, X) .* exp.(rand(prod.err, nrow(df)))
     df[!, "TC"] = F_cost(X) .+ df.FC
     df[!, "P"] = df.Y - df.TC
     df[!, "termination"] = sol.termination

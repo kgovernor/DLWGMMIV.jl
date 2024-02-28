@@ -23,19 +23,52 @@ function ACF(β, g_β, data, vars, g_B, use_constant, closedsolve; derivative = 
 
     # OMEGA_lag_pol = [OMEGA_lag.^i for i in 1:g_B.deg] # Matrix(df[:, names(df, Regex(ωstr*"_lag"))])
 
-    OMEGA_lag_pol = [constant hcat([OMEGA_lag.^i for i in 1:g_B.deg]...)]
+    # OMEGA_lag_pol = Matrix(undef, length(constant), g_B.deg + 1)
+    # for i in 1:(g_B.deg + 1)
+    #     if i == 1
+    #         OMEGA_lag_pol[:, i] = constant 
+    #     else
+    #         OMEGA_lag_pol[:, i] = i == 2 ? OMEGA_lag : OMEGA_lag.^(i-1)
+    #     end
+    # end
+
+    OMEGA_lag_pol = [constant hcat([OMEGA_lag.^(i) for i in 1:g_B.deg]...)]
 
     if closedsolve
+        # A = Matrix{T}(undef, g_B.deg+1, g_B.deg+1)
+        # # # b = Vector(undef, g_B.deg+1)
+        # # # mul!(A, OMEGA_lag_pol', OMEGA_lag_pol)
+        # # # mul!(b, OMEGA_lag_pol', OMEGA)
+        # for i in 1:size(A, 1)
+        #     A[:, i] = OMEGA_lag_pol' * OMEGA_lag_pol[:, i]
+        # end
+        A = OMEGA_lag_pol' * OMEGA_lag_pol
+        b = OMEGA_lag_pol' * OMEGA 
+    
+        # @show A
+        # @show b
         dN = 1:NT
         if use_constant
-            dgbs = 1:size(OMEGA_lag_pol,2)
-            gbs = qr(OMEGA_lag_pol' * OMEGA_lag_pol) \ (OMEGA_lag_pol' * OMEGA)
+            if isempty(g_B)
+                dgbs = 1:length(b)
+                gbs = A \ (b)
+            else
+                gbs = values(g_B, true)
+                R = OMEGA .- OMEGA_lag_pol[:, 2:end]*gbs[2:end]
+                gbs = [sum(R)/sum(constant); gbs[2:end]]
+            end
             # gbs = [sum(OMEGA_lag_pol[j, i]* OMEGA_lag_pol[j, k] for j in dN) for i in dgbs, k in dgbs] \ [sum(OMEGA_lag_pol[j, i] * OMEGA[j] for j in dN) for i in dgbs]
         else
-            dgbs = 2:size(OMEGA_lag_pol,2)
-            gbs = qr(OMEGA_lag_pol[:,2:end]' * OMEGA_lag_pol[:,2:end]) \ (OMEGA_lag_pol[:,2:end]' * OMEGA)
-            # gbs = [sum(OMEGA_lag_pol[j, i]* OMEGA_lag_pol[j, k] for j in dN) for i in dgbs, k in dgbs] \ [sum(OMEGA_lag_pol[j, i] * OMEGA[j] for j in dN) for i in dgbs]
-            gbs = [0; gbs]
+            if isempty(g_B)
+                dgbs = 2:length(b)
+                A = A[2:end, 2:end]
+                b = b[2:end]
+                gbs = A \ (b)
+                # gbs = [sum(OMEGA_lag_pol[j, i]* OMEGA_lag_pol[j, k] for j in dN) for i in dgbs, k in dgbs] \ [sum(OMEGA_lag_pol[j, i] * OMEGA[j] for j in dN) for i in dgbs]
+                gbs = [0; gbs]
+            else
+                gbs= values(g_B, true)
+            end
         end
         return gbs
     end

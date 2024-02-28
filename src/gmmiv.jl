@@ -77,13 +77,11 @@ function dlwGMMIV(
     model = ACF_model(),
     skip_stage1 = false,
     bstart = 0,
-    globalsolve = false,
-    local_optimizer = BFGS(),
-    global_optimizer = BBO_adaptive_de_rand_1_bin_radiuslimited(),
+    optimizer = BFGS(),
     maxtime = 1000.0,
     maxiters = 20000,
-    lb = 0,
-    ub = 1,
+    lb = zeros(length(z)),
+    ub = ones(length(z)),
     df_out = false
     )
 
@@ -99,9 +97,7 @@ function dlwGMMIV(
 
     opt = (
         bstart = bstart, 
-        globalsolve = globalsolve,
-        local_optimizer = local_optimizer,
-        global_optimizer = global_optimizer,
+        optimizer = optimizer,
         maxtime = maxtime,
         maxiters = maxiters,
         lb = lb,
@@ -124,13 +120,11 @@ function dlwGMMIV(time::Vector, id::Vector, Y::Vector, X_stage1::AbstractMatrix,
     model = ACF_model(),
     skip_stage1 = false,
     bstart = 0,
-    globalsolve = false,
-    local_optimizer = BFGS(),
-    global_optimizer = BBO_adaptive_de_rand_1_bin_radiuslimited(),
+    optimizer = BFGS(),
     maxtime = 1000.0,
     maxiters = 20000,
-    lb = 0,
-    ub = 1,
+    lb = zeros(length(z)),
+    ub = ones(length(z)),
     df_out = false
     ) 
 
@@ -142,9 +136,7 @@ function dlwGMMIV(time::Vector, id::Vector, Y::Vector, X_stage1::AbstractMatrix,
         model = model,
         skip_stage1 = skip_stage1,
         bstart = bstart, 
-        globalsolve = globalsolve,
-        local_optimizer = local_optimizer,
-        global_optimizer = global_optimizer,
+        optimizer = optimizer,
         maxtime = maxtime,
         maxiters = maxiters,
         lb = lb,
@@ -160,11 +152,10 @@ end
 
 function stage1(df, vars, model, skip_stage1)
     res = missing
-
-    df[!, vars.phivar] = df[!, vars.yvar]
     
     if model.method == :none || skip_stage1
         println("\nSkipping Stage 1. Returning output as phi.\n")
+        df[!, vars.phivar] = df[!, vars.yvar]
     else 
         y = df[!, vars.yvar]
         X = df[!, vars.xvars1]
@@ -178,7 +169,7 @@ function stage1(df, vars, model, skip_stage1)
         end
     end
 
-    df[!, vars.epsvar] = df[:, vars.yvar] - df.phi 
+    df[!, vars.epsvar] = df[:, vars.yvar] - df[:, vars.phivar]
 
     return res
 end
@@ -186,8 +177,8 @@ end
 function stage2(df, vars, betas, model, opt)
     B = init_betas(betas, "β_".*(vars.xvars2), opt.bstart, model.s2_deg)
     nB = length(B)
-    g_B = model.g_B
-    interval_optimizer = (opt.global_optimizer == :IntervalOptimiser)
+    g_B = deepcopy(model.g_B)
+    interval_optimizer = (opt.optimizer == :IntervalOptimiser)
 
     for v in [vars.xvars2, vars.zvars]
         df = poly_approx_vars(df, B.deg, v, exponents = B.e)
@@ -208,48 +199,51 @@ function stage2(df, vars, betas, model, opt)
     _solveXI(cache, betas) = solveXI(cache, betas, f, gf, model, Z, interval_optimizer = interval_optimizer)
     cache = Cache([], [], [])
 
-    lb, ub = zeros(nB) .- eps(), ones(nB)
+    lb, ub = [opt.lb; [-Inf for _ in 1:(nB-length(opt.lb))]], [opt.ub; [Inf for _ in 1:(nB-length(opt.ub))]]
     bstart = initial_values(B)
 
     optf = OptimizationFunction((bs, p) -> _solveXI(cache, bs), Optimization.AutoForwardDiff())
     prob = OptimizationProblem(optf, bstart, lb = lb, ub = ub)
 
-    if opt.globalsolve
-        if opt.global_optimizer isa Optim.ParticleSwarm
-            sol = solve(prob, Optim.ParticleSwarm(lower = prob.lb, upper = prob.ub, n_particles = opt.global_optimizer.n_particles), maxiters = opt.maxiters, maxtime = opt.maxtime)
-        elseif interval_optimizer
-            X = IntervalBox(0..1, nB)
-            zmin, xmin = minimise((B) -> _solveXI(cache, [b for b in B]), X, tol = 1e-2)
-            println(xmin)
-            return (z = zmin, x = xmin)
-        else
-            sol = solve(prob, opt.global_optimizer, maxiters = opt.maxiters, maxtime = opt.maxtime)
-        end
+    if opt.optimizer isa Optim.ParticleSwarm
+        sol = solve(prob, Optim.ParticleSwarm(lower = prob.lb, upper = prob.ub, n_particles = opt.optimizer.n_particles), maxiters = opt.maxiters, maxtime = opt.maxtime)
+    elseif interval_optimizer
+        X = IntervalBox(0..1, nB)
+        zmin, xmin = minimise((B) -> _solveXI(cache, [b for b in B]), X, tol = 1e-2)
+        println(xmin)
+        return (z = zmin, x = xmin)
     else
-        sol = solve(prob, opt.local_optimizer, maxiters = opt.maxiters, maxtime = opt.maxtime)
+        sol = solve(prob, opt.optimizer, maxiters = opt.maxiters, maxtime = opt.maxtime)
     end
     # println(sol.original)
 
-    println(sol.u)
+    # println(sol.u)
     # println(sol.objective)
 
-    add_betas!(B, keys(B), sol.u)
-    innervstart, gbs = _solve_lower_level(bstart)
-    start_betas!(g_B, keys(g_B), gbs)
-    innervend, gbs = _solve_lower_level(sol.u)
-    add_betas!(g_B, keys(g_B), gbs)
+    # add_betas!(B, keys(B), sol.u)
+    # gbs = gf(bstart)
+    # # innervstart, gbs = _solve_lower_level(bstart)
+    # start_betas!(g_B, keys(g_B), gbs)
+    gbs = gf(sol.u)
+    omega = df[:, vars.phivar] .- Matrix(df[:, vars.xvars2])*sol.u
+    xi = f(sol.u, gbs)
+    # innervend, gbs = _solve_lower_level(sol.u)
+    # add_betas!(g_B, keys(g_B), gbs)
 
     res = GMM_results(
-        [B, g_B],
-        sol,
-        opt.globalsolve,
-        SciMLBase.successful_retcode(sol),
-        _solveXI(cache, bstart),
-        sol.objective,
-        innervstart,
-        innervend
+        sol.u,
+        gbs,
+        omega,
+        xi,
+        # [B, g_B],
+        # sol,
+        # SciMLBase.successful_retcode(sol),
+        # _solveXI(cache, bstart),
+        sol.objective
+        # innervstart,
+        # innervend
     )
-    # df[!, :omega] = df[:, vars.phivar] - df[:, vars.xvars2]*sol.u
+    # df[!, :omega] = df[:, vars.phivar] .- Matrix(df[:, vars.xvars2])*sol.u
     # df[!, :xi] = f(sol.u, gbs)
 
     return res
@@ -331,7 +325,7 @@ function prodest_method(model)
 end
 
 function solve_lower_level(betas, f, gf, model, interval_optimizer)
-    if interval_optimizer #opt.global_optimizer == :IntervalOptimiser
+    if interval_optimizer #opt.optimizer == :IntervalOptimiser
         betas = mid.(betas)
     end
     innergmm(gbetas) = sum(f(betas, gbetas).^2)
@@ -364,9 +358,12 @@ function _update_if_needed(cache::Cache, x, f, gf, model, interval_optimizer)
 end
 
 function solveXI(cache::Cache, betas, f, gf, model, Z; interval_optimizer = false)
-    _update_if_needed(cache, betas, f, gf, model, interval_optimizer)
-    XI = f(betas, cache.g_β)
-    v = (XI' * Z * Z' * XI) / (size(Z, 1)^2)
+    # @time _update_if_needed(cache, betas, f, gf, model, interval_optimizer)
+    XI = f(betas, gf(betas)) # changed
+    # ZXI = Vector{Float64}(undef, length(betas))
+    # mul!(ZXI, Z', XI)
+    # v = (ZXI' * ZXI) / (size(Z, 1)^2)
+    v = ((XI' * Z) * (Z' * XI)) / (size(Z, 1)^2)
     return v
 end
 
